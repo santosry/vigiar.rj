@@ -43,7 +43,7 @@ vigiar_desconectar()
 
 O VIGIAR disponibiliza 32 tabelas. O pacote baixa todas, com foco no RJ.
 
-### 🌍 Qualidade do Ar (PM2.5)
+### Qualidade do Ar (PM2.5)
 
 ```r
 # PM2.5 anual por municipio
@@ -63,7 +63,7 @@ dias_conama <- vigiar_baixar_rj("df_dias_conama") |>
   process_vigiar(tabela = "df_dias_conama")
 ```
 
-### 👥 Populacao Exposta
+### Populacao Exposta
 
 ```r
 # Populacao por faixa de concentracao de PM2.5
@@ -79,7 +79,7 @@ pop |>
   summarise(pop_total = sum(populacao, na.rm = TRUE))
 ```
 
-### 🏥 Indicadores de Saude
+### Indicadores de Saude
 
 ```r
 # Indicadores agregados — BRASIL
@@ -114,7 +114,7 @@ saude_rj |>
   select(desfecho, ano, estimativa, ic_inferior, ic_superior)
 ```
 
-### 🏠 Exposicao Indoor (Combustiveis Solidos)
+### Exposicao Indoor (Combustiveis Solidos)
 
 ```r
 # Exposicao a combustiveis solidos em domicilios
@@ -131,7 +131,7 @@ indoor_saude <- vigiar_baixar_rj("df_indoor_desfecho") |>
   process_vigiar(tabela = "df_indoor_desfecho")
 ```
 
-### 📊 Medidas Calculadas
+### Medidas Calculadas
 
 ```r
 # Tabela de medidas: rankings, medias moveis, alertas (61 colunas)
@@ -139,7 +139,7 @@ medidas <- vigiar_baixar("medidas")
 names(medidas)
 ```
 
-### 📋 Cadastro de Municipios
+### Cadastro de Municipios
 
 ```r
 # Todos os municipios do RJ com coordenadas
