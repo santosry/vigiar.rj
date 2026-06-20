@@ -186,9 +186,9 @@ test_that(".vigiar_parse_dados resolves ValueDicts", {
   for (i in seq_along(schema)) schema[[i]]$Name <- names(schema)[i]
 
   dm0 <- list(
-    list(S = schema, C = list(1L, 1L)),
-    list(R = 2L, C = list(2L)),
-    list(R = 2L, C = list(3L))
+    list(S = schema, C = list(1L, 0L)),
+    list(R = 2L, C = list(1L)),
+    list(R = 2L, C = list(2L))
   )
   vd <- list(D0 = c("São Paulo", "Rio de Janeiro", "Minas Gerais"))
 

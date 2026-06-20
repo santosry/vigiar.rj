@@ -138,8 +138,8 @@
   if (is.null(dn)) return(val)
   dict <- value_dicts[[dn]]
   if (is.null(dict)) return(val)
-  if (is.numeric(val) && val >= 1 && val <= length(dict)) {
-    return(dict[[as.integer(val)]])
+  if (is.numeric(val) && val >= 0 && val < length(dict)) {
+    return(dict[[as.integer(val) + 1L]])
   }
   val
 }
