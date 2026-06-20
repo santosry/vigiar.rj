@@ -300,14 +300,26 @@ vigiar_baixar_rj <- function(tabela, strategy = c("auto", "direct", "year"), ...
 #' Year-partitioned download for large tables
 #' @keywords internal
 .vigiar_baixar_rj_year <- function(tabela, ...) {
+  # For year partitioning, only request essential columns to keep
+  # DM0 format predictable (4 columns = standard R=3/R=6 format)
+  colunas_essenciais <- switch(tabela,
+    df_anual = c("muni", "UF", "ano", "Media_pm25"),
+    df_mensal = c("muni", "UF", "ano", "mes", "pm25"),
+    df_dias = c("ID_MUNI", "mes", "ano", "n_dias"),
+    df_dias_conama = c("ID_MUNI", "mes", "ano", "n_dias_conama"),
+    NULL
+  )
+
   # Query 1: ASC order (earliest years, all municipalities)
   message("Baixando primeiros anos (ASC)...")
-  d1 <- vigiar_baixar(tabela, ordenar_por = "ano", direcao = "asc", ...)
+  d1 <- vigiar_baixar(tabela, colunas = colunas_essenciais,
+                      ordenar_por = "ano", direcao = "asc", ...)
   d1 <- .vigiar_filtrar_rj(d1)
 
   # Query 2: DESC order (latest years, all municipalities)
   message("Baixando ultimos anos (DESC)...")
-  d2 <- vigiar_baixar(tabela, ordenar_por = "ano", direcao = "desc", ...)
+  d2 <- vigiar_baixar(tabela, colunas = colunas_essenciais,
+                      ordenar_por = "ano", direcao = "desc", ...)
   d2 <- .vigiar_filtrar_rj(d2)
 
   # Combine and deduplicate
