@@ -13,6 +13,7 @@ export(vigiar_info)
 export(vigiar_baixar)
 export(vigiar_baixar_tudo)
 export(vigiar_baixar_principais)
+export(vigiar_baixar_rj)
 
 # ── Processing ────────────────────────────────────────────────────────────────
 export(process_vigiar)

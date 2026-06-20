@@ -1,6 +1,6 @@
 Package: vigiar
 Type: Package
-Title: Download and Process VIGIAR Environmental Health Surveillance Data
+Title: Download and Process VIGIAR Environmental Health Data — Rio de Janeiro
 Version: 0.3.0
 Authors@R: c(
     person(given = "Ryan",
