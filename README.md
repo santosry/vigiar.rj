@@ -97,36 +97,79 @@ vigiar_desconectar()
 
 ## Funções
 
+### Conexão
 | Função | Descrição |
 |--------|-----------|
-| `vigiar_conectar()` | Estabelece sessão anônima com o Power BI |
-| `vigiar_desconectar()` | Encerra a sessão |
-| `vigiar_sessao_ativa()` | Verifica se há sessão ativa |
-| `vigiar_status()` | Verifica se o dashboard está online |
-| `vigiar_tabelas()` | Lista todas as 32 tabelas |
+| `vigiar_conectar(refresh, timeout)` | Estabelece sessão com o Power BI |
+| `vigiar_desconectar()` | Encerra a sessão e limpa cache |
+| `vigiar_sessao_ativa()` | TRUE se há sessão ativa |
+| `vigiar_status()` | Dashboard online? Schema consistente? |
+
+### Download
+| Função | Descrição |
+|--------|-----------|
+| `vigiar_tabelas()` | Lista as 32 tabelas |
 | `vigiar_info()` | Catálogo com descrições e categorias |
-| `vigiar_esquema(tabela)` | Mostra colunas e tipos |
-| `vigiar_baixar(tabela, ...)` | Baixa uma tabela |
-| `vigiar_baixar_tudo(tabelas, delay)` | Baixa múltiplas tabelas com intervalo |
-| `vigiar_baixar_principais()` | Baixa 14 tabelas principais |
-| `process_vigiar(dados, tabela)` | Processa dados (dispatcher automatico) |
-| `process_pm25(dados)` | Padroniza dados de PM2.5 |
-| `process_indicadores_saude(dados)` | Padroniza indicadores de saude |
-| `process_populacao_exposta(dados)` | Padroniza dados populacionais |
-| `process_fracao_atribuivel(dados)` | Padroniza fracao atribuivel |
-| `process_exposicao_indoor(dados)` | Padroniza exposicao indoor |
-| `process_municipios(dados)` | Padroniza cadastro de municipios |
-| `vigiar_checar_dados(dados)` | Diagnostico de qualidade |
-| `vigiar_diagnostico()` | Amostra e diagnostica todas as tabelas |
-| `vigiar_resumo(x)` | Resumo descritivo (S3 generico) |
-| `vigiar_serie_temporal(dados)` | Serie temporal descritiva |
-| `vigiar_agregar_tempo(dados)` | Agregacao temporal |
-| `vigiar_dicionario()` | Dicionario completo de variaveis |
-| `vigiar_variaveis(dominio)` | Variaveis por dominio |
-| `vigiar_validar_dicionario()` | Valida cobertura do dicionario |
-| `vigiar_exportar_csv(dados, path)` | Exporta para CSV |
-| `vigiar_exportar_rds(dados, path)` | Exporta para RDS |
-| `vigiar_exportar_parquet(dados, path)` | Exporta para Parquet |
+| `vigiar_esquema(tabela)` | Colunas e tipos de uma tabela |
+| `vigiar_baixar(tabela, colunas, limite)` | Baixa uma tabela |
+| `vigiar_baixar_tudo(tabelas, delay)` | Baixa múltiplas tabelas |
+| `vigiar_baixar_principais()` | Atalho: 14 tabelas principais |
+
+### Processamento
+| Função | Descrição |
+|--------|-----------|
+| `process_vigiar(dados, tabela)` | Dispatcher automático |
+| `process_pm25(dados, tipo)` | PM2.5 (anual/mensal/dias) |
+| `process_populacao_exposta(dados)` | População por categoria |
+| `process_indicadores_saude(dados, agregacao)` | Indicadores (brasil/uf/municipio) |
+| `process_fracao_atribuivel(dados)` | Fração atribuível |
+| `process_exposicao_indoor(dados, tipo)` | Exposição indoor |
+| `process_municipios(dados)` | Cadastro de municípios |
+| `process_ufs(dados)` | Dados agregados por UF |
+
+### Validação
+| Função | Descrição |
+|--------|-----------|
+| `vigiar_padronizar_colunas(dados, tabela)` | Padroniza nomes |
+| `vigiar_validar_ibge(dados)` | Códigos IBGE (110001–530010) |
+| `vigiar_validar_datas(dados)` | Anos (2000+) e meses (1–12) |
+| `vigiar_validar_unidades(dados)` | PM2.5 (0–1000 µg/m³) |
+| `vigiar_checar_dados(dados, tabela)` | NAs, duplicatas, tipos |
+| `vigiar_diagnostico(amostra)` | Amostra + diagnostica tudo |
+
+### Resumos e Séries
+| Função | Descrição |
+|--------|-----------|
+| `vigiar_resumo(x)` | S3 genérico |
+| `vigiar_resumo_pm25(x)` | Média, DP, percentis PM2.5 |
+| `vigiar_resumo_saude(x)` | Nº indicadores, desfechos |
+| `vigiar_resumo_populacao(x)` | Pop total, cobertura |
+| `vigiar_resumo_fracao_atribuivel(x)` | Média, min, max fração |
+| `vigiar_resumo_indoor(x)` | Média, min, max indoor |
+| `vigiar_serie_temporal(dados, nivel)` | Agrega por ano |
+| `vigiar_tendencia_descritiva(dados)` | Variação anual + média móvel |
+| `vigiar_agregar_tempo(dados, agregar_por)` | Agregação flexível |
+
+### Dicionário
+| Função | Descrição |
+|--------|-----------|
+| `vigiar_dicionario()` | 67 variáveis documentadas |
+| `vigiar_variaveis(dominio)` | Filtra por domínio |
+| `vigiar_descrever_variavel(dominio, var)` | Detalhes de uma variável |
+| `vigiar_schema(dominio)` | Schema resumido |
+| `vigiar_convencoes()` | Abre página de convenções |
+| `vigiar_tabelas_documentadas()` | Tabelas no dicionário |
+| `vigiar_variaveis_nao_documentadas()` | Variáveis órfãs |
+| `vigiar_variaveis_orfas()` | Documentadas mas ausentes |
+| `vigiar_validar_dicionario()` | Relatório de cobertura |
+| `vigiar_comparar_schema()` | Live vs documentado |
+
+### Exportação
+| Função | Descrição |
+|--------|-----------|
+| `vigiar_exportar_csv(dados, caminho)` | CSV (UTF-8) |
+| `vigiar_exportar_rds(dados, caminho)` | RDS (preserva metadados) |
+| `vigiar_exportar_parquet(dados, caminho)` | Parquet (requer arrow) |
 
 ## Catálogo de dados
 
