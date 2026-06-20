@@ -43,7 +43,7 @@ remotes::install_github("santosry/vigiar-download")
 ### Conectar ao dashboard
 
 ```r
-library(vigiar)
+library(vigiar.rj)
 
 # Estabelece sessão e carrega o esquema de dados
 vigiar_conectar()

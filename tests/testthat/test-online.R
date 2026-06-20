@@ -6,7 +6,7 @@
 #            devtools::test()
 
 library(testthat)
-library(vigiar)
+library(vigiar.rj)
 
 # Guard — skip all online tests unless explicitly enabled
 online_tests <- identical(tolower(Sys.getenv("VIGIAR_RUN_ONLINE_TESTS")), "true")

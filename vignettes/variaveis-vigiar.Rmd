@@ -30,7 +30,7 @@ disponíveis no dashboard VIGIAR. O dicionário documenta:
 - **Valores aceitos** e intervalos plausíveis
 
 ```{r}
-library(vigiar)
+library(vigiar.rj)
 
 # Carregar o dicionário completo
 dict <- vigiar_dicionario()

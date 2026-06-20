@@ -18,7 +18,7 @@
 #' @export
 vigiar_dicionario <- function() {
   path <- system.file("extdata", "vigiar_variable_dictionary.csv",
-                      package = "vigiar", mustWork = TRUE)
+                      package = "vigiar.rj", mustWork = TRUE)
   tbl <- tryCatch(
     utils::read.csv(path, stringsAsFactors = FALSE, encoding = "UTF-8"),
     error = function(e) {
