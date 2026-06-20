@@ -2,7 +2,7 @@
 # Core constants, internal environment, and utility functions
 
 # Suppress R CMD check NOTE about ggplot2's .data pronoun
-utils::globalVariables(".data")
+
 # vigiar: Download Data from the VIGIAR Environmental Health Surveillance Dashboard
 # Copyright (C) 2026 Ryan Santos
 # Licensed under MIT

@@ -573,21 +573,6 @@ test_that("vigiar_schema returns tibble", {
   expect_s3_class(s, "tbl_df")
 })
 
-# ── Maps (offline, without geobr) ─────────────────────────────────────────────
-
-test_that("vigiar_join_geobr errors gracefully without geobr", {
-  dados <- data.frame(cod_municipio = 355030L, ano = 2022L)
-  if (!requireNamespace("geobr", quietly = TRUE)) {
-    expect_error(vigiar_join_geobr(dados, "municipio"), "geobr")
-  }
-})
-
-test_that("vigiar_mapa_pm25 errors gracefully without sf", {
-  dados <- data.frame(cod_municipio = 355030L, pm25_media_anual = 22.5)
-  if (!requireNamespace("sf", quietly = TRUE)) {
-    expect_error(vigiar_mapa_pm25(dados, "municipio"), "geobr")
-  }
-})
 
 # ── process_vigiar dispatcher ─────────────────────────────────────────────────
 

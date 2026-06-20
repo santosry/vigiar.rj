@@ -62,13 +62,6 @@ export(vigiar_serie_temporal)
 export(vigiar_tendencia_descritiva)
 export(vigiar_agregar_tempo)
 
-# ── Maps ──────────────────────────────────────────────────────────────────────
-export(vigiar_join_geobr)
-export(vigiar_mapa_pm25)
-export(vigiar_mapa_populacao_exposta)
-export(vigiar_mapa_indicadores_saude)
-export(vigiar_mapa_fracao_atribuivel)
-export(vigiar_mapa_indoor)
 
 # ── Export ────────────────────────────────────────────────────────────────────
 export(vigiar_exportar_csv)

@@ -40,12 +40,7 @@ Imports:
     tibble
 Suggests:
     testthat (>= 3.0.0),
-    ggplot2,
-    sf,
-    geobr,
     arrow,
-    scales,
-    viridisLite,
     knitr,
     rmarkdown,
     withr,

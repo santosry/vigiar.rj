@@ -31,9 +31,6 @@ navbar:
       - text: "Exploratory Analysis"
       - text: "Séries Temporais"
         href: articles/series-temporais-vigiar.html
-      - text: "Mapas"
-        href: articles/mapas-vigiar.html
-      - text: "-------"
       - text: "Responsible Use"
       - text: "Uso Responsável dos Dados"
         href: articles/uso-responsavel-dados.html
@@ -112,15 +109,6 @@ reference:
   - vigiar_tendencia_descritiva
   - vigiar_agregar_tempo
 
-- title: "Maps"
-  desc: "Exploratory choropleth maps via ggplot2 + optional geobr."
-  contents:
-  - vigiar_join_geobr
-  - vigiar_mapa_pm25
-  - vigiar_mapa_populacao_exposta
-  - vigiar_mapa_indicadores_saude
-  - vigiar_mapa_fracao_atribuivel
-  - vigiar_mapa_indoor
 
 - title: "Export"
   desc: "Export processed data to CSV, RDS, or Parquet."
