@@ -138,7 +138,7 @@ vigiar_rj_resumo <- function(dados, agregacao = c("municipio", "macrorregiao", "
   agregacao <- match.arg(agregacao)
   
   # Ensure data has cod_municipio
-  col_muni <- intersect(c("cod_municipio", "muni"), names(dados))[1]
+  col_muni <- intersect(c("cod_municipio", "muni", "id_muni", "ID_MUNI", "codigo_ibge"), names(dados))[1]
   if (is.na(col_muni)) stop("Coluna de codigo de municipio nao encontrada.")
   
   # Filter to RJ only
