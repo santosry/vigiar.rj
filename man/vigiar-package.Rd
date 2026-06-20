@@ -32,4 +32,4 @@
 \author{
   \strong{Maintainer}: Ryan Santos \email{santosry@protonmail.com}
 }
-\keyword{package}
+\keyword{internal}
