@@ -171,48 +171,6 @@ vigiar_baixar_principais <- function() {
   vigiar_baixar_tudo(disponiveis, progress = TRUE)
 }
 
-#' Download Rio de Janeiro data (shortcut)
-#'
-#' Downloads all tables filtered for Rio de Janeiro state (UF = RJ).
-#'
-#' @return Named list of tibbles with RJ-only data.
-#' @export
-vigiar_baixar_rj <- function() {
-  if (is.null(.vigiar_env$sessao)) {
-    stop("Nenhuma sessao ativa. Execute vigiar_conectar() primeiro.")
-  }
-
-  message("Baixando dados do Rio de Janeiro...")
-
-  tabelas_rj <- c("df_muni", "df_anual", "df_mensal", "pop",
-                  "tb_uf", "tb_muni", "df_dias", "df_dias_conama")
-  disponiveis <- intersect(tabelas_rj, names(.vigiar_env$esquema))
-
-  resultado <- list()
-  for (tab in disponiveis) {
-    message(sprintf("  Baixando '%s'...", tab))
-    resultado[[tab]] <- tryCatch(
-      vigiar_baixar(tab, uf = "RJ"),
-      error = function(e) {
-        warning(sprintf("Erro em '%s': %s", tab, e$message))
-        NULL
-      }
-    )
-  }
-
-  # Add municipality registry
-  if ("df_muni" %in% names(resultado) && !is.null(resultado[["df_muni"]])) {
-    muni <- resultado[["df_muni"]]
-    rj_munis <- muni[muni$UF_SIGLA == "RJ" | muni$sigla_uf == "RJ", ]
-    message(sprintf("  Municipios do RJ: %d", nrow(rj_munis)))
-  }
-
-  n_ok <- sum(!vapply(resultado, is.null, logical(1)))
-  message(sprintf("Download RJ concluido: %d/%d tabelas.", n_ok, length(disponiveis)))
-
-  resultado
-}
-
 #' Table catalogue with descriptions
 #'
 #' Returns a tibble with all tables, column counts, descriptions,
