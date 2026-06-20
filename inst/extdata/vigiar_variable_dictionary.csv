@@ -1,7 +1,3 @@
-# vigiar variable dictionary — built from live VIGIAR schema
-# Generated: 2026-06-20
-# Source: VIGIAR Power BI dashboard (Ministério da Saúde)
-
 table_id,table_name,category,original_name,standard_name,type_raw,type_processed,description,unit,allowed_values,missing_values,example,processing_rule,validation_rule,notes
 df_anual,Médias anuais PM2.5,Qualidade do Ar,muni,cod_municipio,integer,integer,Código IBGE do município,,110001–530010,,120001,as.integer,110001–530010,
 df_anual,Médias anuais PM2.5,Qualidade do Ar,UF,sigla_uf,character,character,Sigla da UF,,AC–TO,,AC,,,Resolvido via ValueDicts
@@ -61,3 +57,12 @@ df_indoor,Exposição indoor,Exposição Indoor,comb_sol,prop_combustiveis_solid
 df_indoor,Exposição indoor,Exposição Indoor,pop_exposta,populacao_exposta,numeric,integer,População exposta,habitantes,>0,,186256,as.numeric,>0,
 df_indoor,Exposição indoor,Exposição Indoor,percent_comb,percentual_combustiveis,numeric,numeric,Percentual de domicílios com combustíveis sólidos,%,0–100,,19.4,as.numeric,0–100,
 df_indoor,Exposição indoor,Exposição Indoor,Quartis,quartis,character,character,Categoria de quartil,,Q1/Q2/Q3/Q4,,Q2,,,
+df_indoor_desfecho,Desfechos indoor,Exposição Indoor,Code,cod_uf,integer,integer,Código da UF,,11–53,,35,as.integer,11–53,
+df_indoor_desfecho,Desfechos indoor,Exposição Indoor,State.x,sigla_uf,character,character,Sigla da UF,,AC–TO,,SP,,,
+df_indoor_desfecho,Desfechos indoor,Exposição Indoor,Ano,ano,integer,integer,Ano de referência,,2000–2026,,2022,as.integer,2000–current_year,
+df_indoor_desfecho,Desfechos indoor,Exposição Indoor,parametro,parametro,character,character,Parâmetro analisado,,,,,,,
+df_indoor_desfecho,Desfechos indoor,Exposição Indoor,sexo,sexo,character,character,Sexo,,Masculino/Feminino,,Feminino,,,
+df_indoor_desfecho,Desfechos indoor,Exposição Indoor,pop,populacao,numeric,integer,População,habitantes,>0,,476875,as.numeric,>0,
+df_indoor_desfecho,Desfechos indoor,Exposição Indoor,comb_sol_perc,perc_combustiveis_solidos,numeric,numeric,Percentual de domicílios com combustíveis sólidos,%,0–100,,19.4,as.numeric,0–100,
+df_indoor_desfecho,Desfechos indoor,Exposição Indoor,indicador,indicador,character,character,Nome do indicador,,,,,,,
+df_indoor_desfecho,Desfechos indoor,Exposição Indoor,est,estimativa,numeric,numeric,Estimativa pontual,varia,,0.10057,as.numeric,,

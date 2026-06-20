@@ -243,3 +243,166 @@ test_that(".vigiar_parse_dados pads short rows", {
   expect_equal(df$b, c(2L, 5L))
   expect_true(is.na(df$c[2]))
 })
+
+# ── Processing functions ──────────────────────────────────────────────────────
+
+test_that("process_pm25 renames columns correctly", {
+  raw <- data.frame(
+    muni = 355030L, UF = "SP", ano = 2022L,
+    Media_pm25 = 22.5, Categoria_pm25 = "> 35 µg/m³",
+    stringsAsFactors = FALSE
+  )
+  result <- process_pm25(raw, tipo = "anual")
+  expect_s3_class(result, "vigiar_pm25")
+  expect_true("cod_municipio" %in% names(result))
+  expect_true("sigla_uf" %in% names(result))
+  expect_true("pm25_media_anual" %in% names(result))
+  expect_true("categoria_oms" %in% names(result))
+  expect_equal(result$pm25_media_anual, 22.5)
+})
+
+test_that("process_populacao_exposta renames columns", {
+  raw <- data.frame(
+    muni = 355030L, ano = 2022L, pop = 12345678,
+    categoria = "> 35 µg/m³", UF = "SP",
+    stringsAsFactors = FALSE
+  )
+  result <- process_populacao_exposta(raw)
+  expect_s3_class(result, "vigiar_population")
+  expect_true("cod_municipio" %in% names(result))
+  expect_true("populacao" %in% names(result))
+  expect_true("categoria_exposicao" %in% names(result))
+})
+
+test_that("process_indicadores_saude renames columns", {
+  raw <- data.frame(
+    Indicador = "Fração atribuível (%)", n = 5e7, est = 4.5,
+    low = 2.5, high = 6.8, desfecho = "Mortalidade geral",
+    ano = 2022L, stringsAsFactors = FALSE
+  )
+  result <- process_indicadores_saude(raw, agregacao = "brasil")
+  expect_s3_class(result, "vigiar_health")
+  expect_true("indicador" %in% names(result))
+  expect_true("estimativa" %in% names(result))
+  expect_true("ic_inferior" %in% names(result))
+  expect_true("ic_superior" %in% names(result))
+})
+
+test_that("process_fracao_atribuivel renames columns", {
+  raw <- data.frame(
+    Indicador = "Fração atribuível (%)", n = 1e6, est = 12.3,
+    low = 8.1, high = 16.5, desfecho = "Câncer de Pulmão",
+    ano = 2022L, stringsAsFactors = FALSE
+  )
+  result <- process_fracao_atribuivel(raw)
+  expect_s3_class(result, "vigiar_attributable_fraction")
+  expect_true("fracao_atribuivel" %in% names(result))
+})
+
+test_that("process_exposicao_indoor renames columns", {
+  raw <- data.frame(
+    Code = 35L, Ano = 2022L, comb_sol = 0.194,
+    pop_exposta = 186256, percent_comb = 19.4,
+    Quartis = "Q2", stringsAsFactors = FALSE
+  )
+  result <- process_exposicao_indoor(raw, tipo = "exposicao")
+  expect_s3_class(result, "vigiar_indoor")
+  expect_true("cod_uf" %in% names(result))
+  expect_true("prop_combustiveis_solidos" %in% names(result))
+  expect_true("populacao_exposta" %in% names(result))
+})
+
+test_that("process_municipios renames columns", {
+  raw <- data.frame(
+    UF_COD = 35L, UF_SIGLA = "SP", UF_NOME = "São Paulo",
+    REGIAO = "Sudeste", LAT = -23.5, LON = -46.6,
+    stringsAsFactors = FALSE
+  )
+  result <- process_municipios(raw)
+  expect_s3_class(result, "vigiar_municipios")
+  expect_true("cod_uf" %in% names(result))
+  expect_true("sigla_uf" %in% names(result))
+  expect_true("latitude" %in% names(result))
+})
+
+# ── Validation functions ──────────────────────────────────────────────────────
+
+test_that("vigiar_validar_ibge warns on invalid codes", {
+  dados <- data.frame(
+    cod_municipio = c(355030L, 999999L, 110001L),
+    stringsAsFactors = FALSE
+  )
+  expect_warning(
+    vigiar_validar_ibge(dados, "cod_municipio"),
+    "fora do intervalo"
+  )
+})
+
+test_that("vigiar_validar_ibge passes on valid codes", {
+  dados <- data.frame(cod_municipio = c(355030L, 110001L, 530010L))
+  expect_silent(vigiar_validar_ibge(dados, "cod_municipio"))
+})
+
+test_that("vigiar_validar_datas warns on invalid years", {
+  dados <- data.frame(ano = c(2022L, 1800L, 3000L))
+  expect_warning(vigiar_validar_datas(dados), "fora do intervalo")
+})
+
+test_that("vigiar_validar_unidades warns on implausible PM2.5", {
+  dados <- data.frame(pm25_media = c(22.5, -5, 2000))
+  expect_warning(
+    vigiar_validar_unidades(dados, "pm25_media"),
+    "fora do intervalo"
+  )
+})
+
+# ── Dictionary ────────────────────────────────────────────────────────────────
+
+test_that("vigiar_dicionario returns tibble", {
+  dict <- vigiar_dicionario()
+  expect_s3_class(dict, "tbl_df")
+  expect_true(nrow(dict) > 0)
+  expect_true(all(c("table_id", "original_name", "standard_name") %in% names(dict)))
+})
+
+test_that("vigiar_variaveis filters by domain", {
+  pm25_vars <- vigiar_variaveis("pm25")
+  expect_true(all(pm25_vars$table_id %in%
+    c("df_anual", "df_mensal", "df_dias", "df_dias_conama")))
+})
+
+test_that("vigiar_descrever_variavel errors on missing variable", {
+  expect_error(
+    vigiar_descrever_variavel("pm25", "variavel_inexistente"),
+    "não encontrada"
+  )
+})
+
+# ── S3 class methods ──────────────────────────────────────────────────────────
+
+test_that("new_vigiar_tbl creates typed tibble", {
+  df <- data.frame(x = 1:3, y = letters[1:3])
+  out <- new_vigiar_tbl(df, subclass = "vigiar_pm25", tabela = "test")
+  expect_s3_class(out, "vigiar_pm25")
+  expect_s3_class(out, "vigiar_tbl")
+  expect_equal(attr(out, "vigiar_tabela"), "test")
+})
+
+test_that("print.vigiar_tbl works", {
+  df <- data.frame(x = 1:3)
+  out <- new_vigiar_tbl(df, tabela = "test")
+  expect_output(print(out), "VIGIAR tibble")
+})
+
+test_that("summary.vigiar_tbl works", {
+  df <- data.frame(x = c(1, NA, 3))
+  out <- new_vigiar_tbl(df, tabela = "test")
+  expect_output(summary(out), "Resumo")
+})
+
+test_that("validate.vigiar_tbl detects issues", {
+  df <- data.frame(x = numeric(0))
+  out <- new_vigiar_tbl(df, tabela = "")
+  attr(out, "vigiar_tabela") <- NULL
+  expect_warning(validate(out), "vigiar_tabela")
+})
