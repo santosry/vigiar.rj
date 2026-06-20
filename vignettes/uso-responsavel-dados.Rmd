@@ -57,7 +57,7 @@ Power BI "Publish to Web".
 ## Citação
 
 ```r
-citation("vigiar")
+citation("vigiar.rj")
 ```
 
 ## Declaração de IA

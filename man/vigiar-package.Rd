@@ -1,35 +1,31 @@
-\name{vigiar-package}
-\alias{vigiar-package}
-\alias{vigiar}
+\name{vigiar.rj-package}
+\alias{vigiar.rj-package}
+\alias{vigiar.rj}
 \docType{package}
-\title{
-  Download Data from the VIGIAR Environmental Health Surveillance
-  Dashboard
-}
+\title{VIGIAR Environmental Health Data for Rio de Janeiro}
 \description{
-  Provides a programmatic interface to download the complete dataset
-  from Brazil's VIGIAR (Vigilância em Saúde Ambiental) public Power BI
-  dashboard, maintained by the Brazilian Ministry of Health.
+  Specialized package to download, process, validate and analyse
+  environmental health surveillance data from VIGIAR with focus
+  on the state of Rio de Janeiro (92 municipalities).
 }
 \details{
   \tabular{ll}{
-    Package: \tab vigiar \cr
+    Package: \tab vigiar.rj \cr
     Type:    \tab Package \cr
-    Version: \tab 0.1.0 \cr
+    Version: \tab 0.4.0 \cr
     License: \tab MIT \cr
   }
 
   Key functions:
   \itemize{
-    \item \code{\link{vigiar_conectar}} — establish session
-    \item \code{\link{vigiar_baixar}} — download a single table
-    \item \code{\link{vigiar_baixar_tudo}} — download all tables
-    \item \code{\link{vigiar_info}} — table catalogue
-    \item \code{\link{vigiar_checar_dados}} — validate downloaded data
-    \item \code{\link{vigiar_status}} — check dashboard status
+    \item \code{\link{vigiar_conectar}} — connect to dashboard
+    \item \code{\link{vigiar_baixar_rj}} — download RJ data
+    \item \code{\link{vigiar_rj_municipios}} — list 92 municipalities
+    \item \code{\link{vigiar_rj_resumo}} — summarise by health region
+    \item \code{\link{vigiar_validar_rj}} — validate RJ data
   }
 }
 \author{
-  \strong{Maintainer}: Ryan Santos \email{santosry@protonmail.com}
+  \strong{Maintainer}: Ryan Santos \email{ryan.paulo@gsuite.iff.edu.br}
 }
 \keyword{package}

@@ -120,7 +120,7 @@ reference:
 - title: "Package"
   desc: "Package overview and documentation."
   contents:
-  - vigiar-package
+  - vigiar.rj-package
 
 - title: "S3 Classes and Methods"
   desc: "Typed data objects for VIGIAR domains."

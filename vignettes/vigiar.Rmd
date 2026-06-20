@@ -35,7 +35,7 @@ O VIGIAR disponibiliza:
 
 ```r
 # install.packages("remotes")
-remotes::install_github("santosry/vigiar-download")
+remotes::install_github("santosry/vigiar.rj")
 ```
 
 ## Primeiros Passos
