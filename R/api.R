@@ -61,6 +61,9 @@
 
   if (!is.null(limite)) {
     query_cmd$SemanticQueryDataShapeCommand$Query$Top <- as.integer(limite)
+  } else {
+    # Default: request up to 50K rows (API caps at ~30K)
+    query_cmd$SemanticQueryDataShapeCommand$Query$Top <- 50000L
   }
 
   list(

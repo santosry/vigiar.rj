@@ -208,7 +208,7 @@ vigiar_rj_series <- function(dados, agregacao = c("macrorregiao", "regiao_saude"
 #' @export
 vigiar_validar_rj <- function(dados, col_muni = NULL) {
   if (is.null(col_muni)) {
-    col_muni <- intersect(c("cod_municipio", "muni", "codigo_ibge"), names(dados))[1]
+    col_muni <- intersect(c("cod_municipio", "muni", "id_muni", "ID_MUNI", "codigo_ibge", "cod_ibge", "codigo_municipio"), names(dados))[1]
   }
   if (is.na(col_muni)) stop("Coluna de codigo de municipio nao encontrada.")
   
@@ -262,7 +262,7 @@ vigiar_validar_rj <- function(dados, col_muni = NULL) {
 vigiar_baixar_rj <- function(tabela, ...) {
   dados <- vigiar_baixar(tabela, ...)
   
-  col_muni <- intersect(c("cod_municipio", "muni", "MUN_COD"), names(dados))[1]
+  col_muni <- intersect(c("cod_municipio", "muni", "id_muni", "ID_MUNI", "MUN_COD", "codigo_ibge"), names(dados))[1]
   col_uf <- intersect(c("sigla_uf", "UF", "UF_SIGLA"), names(dados))[1]
   
   if (!is.na(col_muni)) {
