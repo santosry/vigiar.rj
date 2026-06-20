@@ -2,6 +2,7 @@
 
 # ── Session management ────────────────────────────────────────────────────────
 export(vigiar_conectar)
+export(vigiar_client)
 export(vigiar_desconectar)
 export(vigiar_sessao_ativa)
 export(vigiar_status)

@@ -27,6 +27,7 @@ VIGIAR_API_CLUSTER <- paste0(
 # -- Internal package environment ----------------------------------------------
 
 .vigiar_env <- new.env(parent = emptyenv())
+# .vigiar_env$client holds the vigiar_client object (set by vigiar_conectar)
 
 # -- NULL-coalesce operator ----------------------------------------------------
 

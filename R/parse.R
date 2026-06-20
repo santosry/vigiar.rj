@@ -1,29 +1,29 @@
-# Package: vigiar
-# DSR (Data Shape Response) parser
+# Package: vigiar.rj
+# Robust DSR (Data Shape Response) parser
 #
-# Decodes the Power BI compressed data format:
-#   - DM0: array of data blocks.  First block carries the schema (S)
-#          and the first row (C).  Subsequent blocks carry reference
-#          count (R, 1-based) + new column values (C).
-#   - ValueDicts: string dictionaries (index -> text) for Text columns.
-#   - Gzip: response body may be gzipped (already handled by api.R).
+# Decodes Power BI's proprietary compressed format:
+#   DM0  – array of data blocks with schema (S), references (R), and values (C)
+#   Dict – ValueDicts for text column compression (0-based indices)
+#   Gzip – transparent decompression
 
-#' Parse a queryData response into a data.frame
+#' Parse a Power BI DSR response into a data.frame
 #'
-#' Power BI returns data in the DSR (Data Shape Response) format.
-#' Consecutive rows that share leading column values are compressed
-#' via a reference index (`R`).  Text columns may use dictionary
-#' encoding (`ValueDicts`).
+#' Handles the compressed Data Shape Response format used by
+#' Power BI's queryData endpoint.  Supports standard (R=3)
+#' and ORDER BY variants (R=4/R=6).
 #'
-#' @param resposta API response list from `queryData`.
-#' @param tabela  Table name (for warning messages).
-#' @return A `data.frame` with decoded, type-converted columns.
+#' @param resposta Raw API response list.
+#' @param tabela Table name for diagnostics.
+#' @param raw If TRUE, returns unprocessed rows list for debugging.
+#' @param schema_check If TRUE, warns on schema mismatch vs expected columns.
+#' @return A data.frame with decoded, type-converted columns.
 #' @keywords internal
-.vigiar_parse_dados <- function(resposta, tabela) {
+.vigiar_parse_dados <- function(resposta, tabela,
+                                 raw = FALSE, schema_check = TRUE) {
   data_section <- resposta$results[[1L]]$result$data
 
   if (is.null(data_section$dsr)) {
-    warning("Tabela '", tabela, "' nao contem dados (dsr ausente).")
+    warning(sprintf("[%s] DSR ausente na resposta.", tabela))
     return(data.frame())
   }
 
@@ -32,73 +32,114 @@
   dm0 <- ph$DM0
 
   if (is.null(dm0) || length(dm0) == 0L) {
-    warning("Tabela '", tabela, "': DM0 vazio.")
+    warning(sprintf("[%s] DM0 vazio.", tabela))
     return(data.frame())
   }
 
+  # ---- Schema extraction ----
   first_entry <- dm0[[1L]]
-  schema      <- first_entry$S
-  n_cols      <- length(schema)
-
-  if (n_cols == 0L) {
-    warning("Tabela '", tabela, "': schema vazio.")
+  if (is.null(first_entry$S)) {
+    warning(sprintf("[%s] Schema (S) ausente no primeiro bloco DM0.", tabela))
     return(data.frame())
   }
 
-  descriptor <- data_section$descriptor
-  col_names  <- vapply(descriptor$Select, `[[`, "", "Name",
-                        USE.NAMES = FALSE)
+  schema     <- first_entry$S
+  n_cols     <- length(schema)
+  col_names  <- vapply(data_section$descriptor$Select, `[[`, "",
+                       "Name", USE.NAMES = FALSE)
 
-  if (length(col_names) != n_cols) {
-    warning(
-      "Tabela '", tabela, "': descriptor tem ", length(col_names),
-      " colunas mas schema tem ", n_cols, ". Usando nomes do schema."
-    )
+  if (schema_check && length(col_names) != n_cols) {
+    warning(sprintf(
+      "[%s] Descriptor tem %d colunas mas schema tem %d.",
+      tabela, length(col_names), n_cols
+    ))
     col_names <- vapply(schema, `[[`, "", "N", USE.NAMES = FALSE)
   }
 
   col_types <- lapply(schema, function(s) {
     list(type = s$T, dn = s$DN %||% NULL)
   })
-
   value_dicts <- ds$ValueDicts %||% list()
 
-  # -- Row reconstruction --------------------------------------------------
+  # ---- Row reconstruction ----
+  rows     <- .vigiar_reconstruct_rows(dm0, n_cols, tabela)
+  if (raw) return(rows)
+
+  # ---- Dictionary resolution ----
+  for (j in seq_len(n_cols)) {
+    dn <- col_types[[j]]$dn
+    if (is.null(dn) || is.null(value_dicts[[dn]])) next
+    dict <- value_dicts[[dn]]
+    for (i in seq_along(rows)) {
+      val <- rows[[i]][[j]]
+      if (is.numeric(val) && val >= 0 && val < length(dict)) {
+        rows[[i]][[j]] <- dict[[as.integer(val) + 1L]]
+      }
+    }
+  }
+
+  # ---- Build data.frame ----
+  n_rows <- length(rows)
+  df <- as.data.frame(matrix(nrow = n_rows, ncol = n_cols),
+                      stringsAsFactors = FALSE)
+  names(df) <- col_names
+  for (i in seq_len(n_rows)) {
+    for (j in seq_len(n_cols)) {
+      val <- rows[[i]][[j]]
+      df[i, j] <- if (is.null(val)) NA else val
+    }
+  }
+
+  # ---- Type conversion ----
+  for (j in seq_len(n_cols)) {
+    df[[j]] <- .vigiar_converter_coluna(df[[j]], col_types[[j]]$type)
+  }
+
+  df
+}
+
+#' Reconstruct rows from DM0 entries
+#'
+#' Handles standard (R < n_cols), ORDER BY (R >= n_cols),
+#' and plain C entries.
+#'
+#' @param dm0 DM0 array from Power BI response.
+#' @param n_cols Number of columns expected.
+#' @param tabela Table name for warnings.
+#' @return List of rows (each row is a list of values).
+#' @keywords internal
+.vigiar_reconstruct_rows <- function(dm0, n_cols, tabela) {
   prev_row <- NULL
   rows     <- vector("list", length(dm0))
+  out_idx  <- 0L
 
   for (i in seq_along(dm0)) {
     entry <- dm0[[i]]
 
     if (!is.null(entry$S)) {
-      # First / schema-carrying entry -- full row
+      # Schema-carrying entry — always a full row
       values <- entry$C
     } else if (!is.null(entry$R)) {
-      r        <- entry$R        # 1-based: keep (R - 1) columns from prev
+      r        <- entry$R
       new_vals <- entry$C
       keep     <- as.integer(r) - 1L
 
       if (is.null(prev_row)) {
-        warning(sprintf("Tabela '%s': DM0[%d] tem R mas sem linha anterior.",
-                        tabela, i))
         values <- new_vals
-      } else if (keep >= n_cols) {
-        # R >= n_cols: special compression for ORDER BY queries.
-        # R=6 with 4 cols: C=[new_muni, new_PM25] at positions 0 and (n-1).
-        # R=4 with 4 cols (year boundary): C=[muni, UF, PM25] at 0,1,3.
-        n_new <- length(new_vals)
+      } else if (r >= as.integer(n_cols)) {
+        # Compressed format used with ORDER BY queries.
+        # R >= n_cols: C provides values for positions 0..len(C)-1
+        # and column (n_cols-1).  Intermediate columns repeat.
         values <- prev_row
-        if (n_cols == 4 && n_new == 2) {
-          # R=6: positions 0 and 3 change (muni, PM25)
-          values[[1]] <- new_vals[[1]]
-          values[[4]] <- new_vals[[2]]
-        } else if (n_cols == 4 && n_new == 3) {
-          # R=4: positions 0,1,3 change (muni, UF, PM25)
-          values[[1]] <- new_vals[[1]]
-          values[[2]] <- new_vals[[2]]
-          values[[4]] <- new_vals[[3]]
+        n_new  <- length(new_vals)
+        if (n_cols == 4L && n_new == 2L) {
+          values[[1L]] <- new_vals[[1L]]       # muni
+          values[[4L]] <- new_vals[[2L]]       # PM2.5
+        } else if (n_cols == 4L && n_new == 3L) {
+          values[[1L]] <- new_vals[[1L]]
+          values[[2L]] <- new_vals[[2L]]
+          values[[4L]] <- new_vals[[3L]]
         } else {
-          # Generic: overwrite first n_new positions
           for (k in seq_len(min(n_new, n_cols))) {
             values[[k]] <- new_vals[[k]]
           }
@@ -109,13 +150,12 @@
         values <- new_vals
       }
     } else if (!is.null(entry$C)) {
-      # Entry with only C (no S, no R) -- treat as full row
       values <- entry$C
     } else {
-      next  # skip empty entries
+      next
     }
 
-    # Pad / truncate to expected column count
+    # Pad or truncate
     len_val <- length(values)
     if (len_val < n_cols) {
       values <- c(values, rep(list(NA), n_cols - len_val))
@@ -123,69 +163,10 @@
       values <- values[seq_len(n_cols)]
     }
 
-    # Resolve text dictionaries
-    for (j in seq_len(n_cols)) {
-      values[[j]] <- .vigiar_resolve_dict(values[[j]], j, col_types, value_dicts)
-    }
-
-    prev_row  <- values
-    rows[[i]] <- values
+    prev_row     <- values
+    out_idx      <- out_idx + 1L
+    rows[[out_idx]] <- values
   }
 
-  # -- Build data.frame ----------------------------------------------------
-  n_rows <- length(rows)
-  df <- as.data.frame(
-    matrix(nrow = n_rows, ncol = n_cols),
-    stringsAsFactors = FALSE
-  )
-  names(df) <- col_names
-
-  for (i in seq_len(n_rows)) {
-    for (j in seq_len(n_cols)) {
-      val <- rows[[i]][[j]]
-      df[i, j] <- if (is.null(val)) NA else val
-    }
-  }
-
-  # Apply column types
-  for (j in seq_len(n_cols)) {
-    df[[j]] <- .vigiar_converter_coluna(df[[j]], col_types[[j]]$type)
-  }
-
-  df
-}
-
-#' Resolve a single dictionary-encoded value
-#' @keywords internal
-.vigiar_resolve_dict <- function(val, col_idx, col_types, value_dicts) {
-  dn <- col_types[[col_idx]]$dn
-  if (is.null(dn)) return(val)
-  dict <- value_dicts[[dn]]
-  if (is.null(dict)) return(val)
-  if (is.numeric(val) && val >= 0 && val < length(dict)) {
-    return(dict[[as.integer(val) + 1L]])
-  }
-  val
-}
-
-#' Convert a column to the appropriate R type
-#' @param x Column vector.
-#' @param type_code Power BI data type code.
-#' @return Converted vector.
-#' @keywords internal
-.vigiar_converter_coluna <- function(x, type_code) {
-  # Replace NULL with NA
-  x <- lapply(x, function(v) if (is.null(v)) NA else v)
-
-  switch(as.character(type_code),
-    `1` = as.character(unlist(x)),
-    `2` = as.numeric(unlist(x)),
-    `3` = as.numeric(unlist(x)),
-    `4` = as.integer(unlist(x)),
-    `5` = as.logical(unlist(x)),
-    `6` = as.Date(unlist(x)),
-    `7` = as.POSIXct(unlist(x), origin = "1970-01-01", tz = "UTC"),
-    `8` = as.numeric(unlist(x)),
-    as.character(unlist(x))  # fallback
-  )
+  rows[seq_len(out_idx)]
 }
