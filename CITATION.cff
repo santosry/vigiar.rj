@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "vigiar: Download Data from the VIGIAR Environmental Health Surveillance Dashboard"
+version: 0.1.0
+date-released: 2026-06-20
+authors:
+  - family-names: Santos
+    given-names: Ryan
+    email: santosry@protonmail.com
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+repository-code: "https://github.com/santosry/vigiar-download"
+url: "https://github.com/santosry/vigiar-download"
+abstract: >
+  R package to programmatically download the complete dataset
+  from Brazil's VIGIAR (Vigilância em Saúde Ambiental) public
+  Power BI dashboard, maintained by the Brazilian Ministry of Health.
+  Provides PM2.5 air quality data, population exposure, epidemiological
+  health indicators, and indoor solid fuel exposure.
+keywords:
+  - R
+  - air-quality
+  - PM2.5
+  - public-health
+  - epidemiology
+  - Brazil
+  - VIGIAR
+  - Power-BI
+  - environmental-health
+license: MIT
+type: software

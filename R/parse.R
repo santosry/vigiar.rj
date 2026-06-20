@@ -1,126 +1,114 @@
 # Package: vigiar
-# Parsing do formato de dados comprimido do Power BI (DSR - Data Shape Response)
+# DSR (Data Shape Response) parser
+#
+# Decodes the Power BI compressed data format:
+#   - DM0: array of data blocks.  First block carries the schema (S)
+#          and the first row (C).  Subsequent blocks carry reference
+#          count (R, 1‑based) + new column values (C).
+#   - ValueDicts: string dictionaries (index → text) for Text columns.
+#   - Gzip: response body may be gzipped (already handled by api.R).
 
-#' Converte a resposta queryData em um data.frame
+#' Parse a queryData response into a data.frame
 #'
-#' O Power BI retorna dados no formato DSR (Data Shape Response) onde
-#' os dados são comprimidos: linhas consecutivas compartilham valores
-#' das colunas anteriores via referência (R). Colunas de texto podem
-#' usar dicionários (ValueDicts) para economia de espaço.
+#' Power BI returns data in the DSR (Data Shape Response) format.
+#' Consecutive rows that share leading column values are compressed
+#' via a reference index (`R`).  Text columns may use dictionary
+#' encoding (`ValueDicts`).
 #'
-#' @param resposta Lista R com a resposta da API queryData
-#' @param tabela Nome da tabela sendo consultada
-#' @return data.frame com os dados descomprimidos e resolvidos
+#' @param resposta API response list from `queryData`.
+#' @param tabela  Table name (for warning messages).
+#' @return A `data.frame` with decoded, type‑converted columns.
 #' @keywords internal
 .vigiar_parse_dados <- function(resposta, tabela) {
-  data_section <- resposta$results[[1]]$result$data
+  data_section <- resposta$results[[1L]]$result$data
 
   if (is.null(data_section$dsr)) {
-    warning("Resposta não contém dados (dsr). Tabela pode estar vazia.")
+    warning("Tabela '", tabela, "' não contém dados (dsr ausente).")
     return(data.frame())
   }
 
-  ds <- data_section$dsr$DS[[1]]
+  ds  <- data_section$dsr$DS[[1L]]
+  ph  <- ds$PH[[1L]]
+  dm0 <- ph$DM0
+
+  if (is.null(dm0) || length(dm0) == 0L) {
+    warning("Tabela '", tabela, "': DM0 vazio.")
+    return(data.frame())
+  }
+
+  first_entry <- dm0[[1L]]
+  schema      <- first_entry$S
+  n_cols      <- length(schema)
+
+  if (n_cols == 0L) {
+    warning("Tabela '", tabela, "': schema vazio.")
+    return(data.frame())
+  }
+
   descriptor <- data_section$descriptor
+  col_names  <- vapply(descriptor$Select, `[[`, "", "Name",
+                        USE.NAMES = FALSE)
 
-  # Verificar se há dados
-  if (is.null(ds$PH) || length(ds$PH) == 0) {
-    warning("Resposta sem dados (PH vazio).")
-    return(data.frame())
+  if (length(col_names) != n_cols) {
+    warning(
+      "Tabela '", tabela, "': descriptor tem ", length(col_names),
+      " colunas mas schema tem ", n_cols, ". Usando nomes do schema."
+    )
+    col_names <- vapply(schema, `[[`, "", "N", USE.NAMES = FALSE)
   }
 
-  ph <- ds$PH[[1]]  # Primeiro (e geralmente único) Projection Header
-
-  # DM0 é um ARRAY de objetos, não um objeto único
-  dm0_entries <- ph$DM0
-  if (is.null(dm0_entries) || length(dm0_entries) == 0) {
-    warning("DM0 vazio. Tabela pode estar vazia.")
-    return(data.frame())
-  }
-
-  # O primeiro DM0 contém o schema (S) + primeira linha de dados
-  first_entry <- dm0_entries[[1]]
-  schema <- first_entry$S
-  n_cols <- length(schema)
-
-  # Mapear nomes e tipos das colunas
-  col_names <- sapply(descriptor$Select, `[[`, "Name")
-  col_types <- sapply(schema, function(s) {
+  col_types <- lapply(schema, function(s) {
     list(type = s$T, dn = s$DN %||% NULL)
-  }, simplify = FALSE)
+  })
 
-  # Extrair dicionários de texto (ValueDicts no nível DS)
   value_dicts <- ds$ValueDicts %||% list()
 
-  # Função para resolver valor de dicionário
-  resolve_dict <- function(val, col_idx) {
-    dn <- col_types[[col_idx]]$dn
-    if (is.null(dn) || is.null(value_dicts[[dn]])) return(val)
-    dict <- value_dicts[[dn]]
-    if (is.numeric(val) && val >= 1 && val <= length(dict)) {
-      return(dict[[val]])
-    }
-    return(val)
-  }
-
-  # Reconstruir todas as linhas
-  # Formato DM0:
-  #   Entrada 0: {S: [schema], C: [valores da 1ª linha]}
-  #   Entradas 1..N: {R: n, C: [novos valores]}
-  #   R é 1-indexado: keep = R - 1 colunas da linha anterior
-  #   C fornece os valores das colunas restantes (posição keep em diante)
-
+  # ── Row reconstruction ──────────────────────────────────────────────────
   prev_row <- NULL
-  rows <- list()
+  rows     <- vector("list", length(dm0))
 
-  for (i in seq_along(dm0_entries)) {
-    entry <- dm0_entries[[i]]
+  for (i in seq_along(dm0)) {
+    entry <- dm0[[i]]
 
     if (!is.null(entry$S)) {
-      # Primeira entrada: linha completa
+      # First / schema‑carrying entry — full row
       values <- entry$C
     } else {
-      # Entrada com referência
-      r <- entry$R       # 1-indexed: colunas a MANTER da linha anterior
+      r        <- entry$R        # 1‑based: keep (R - 1) columns from prev
       new_vals <- entry$C
-
-      keep_count <- r - 1   # número de colunas que repetem
+      keep     <- as.integer(r) - 1L
 
       if (is.null(prev_row)) {
-        warning(sprintf("Entrada DM0[%d] tem R=%d mas não há linha anterior.", i, r))
+        warning(sprintf("Tabela '%s': DM0[%d] tem R mas sem linha anterior.",
+                        tabela, i))
         values <- new_vals
       } else {
-        # Manter as primeiras (r-1) colunas da linha anterior
-        if (keep_count > 0) {
-          values <- c(prev_row[1:keep_count], new_vals)
+        if (keep > 0L) {
+          values <- c(prev_row[seq_len(keep)], new_vals)
         } else {
           values <- new_vals
         }
       }
     }
 
-    # Garantir número correto de colunas
-    if (length(values) < n_cols) {
-      values <- c(values, rep(NA, n_cols - length(values)))
-    } else if (length(values) > n_cols) {
-      values <- values[1:n_cols]
+    # Pad / truncate to expected column count
+    len_val <- length(values)
+    if (len_val < n_cols) {
+      values <- c(values, rep(list(NA), n_cols - len_val))
+    } else if (len_val > n_cols) {
+      values <- values[seq_len(n_cols)]
     }
 
-    # Resolver dicionários de texto
+    # Resolve text dictionaries
     for (j in seq_len(n_cols)) {
-      values[[j]] <- resolve_dict(values[[j]], j)
+      values[[j]] <- .vigiar_resolve_dict(values[[j]], j, col_types, value_dicts)
     }
 
-    prev_row <- values
-    rows[[length(rows) + 1]] <- values
+    prev_row  <- values
+    rows[[i]] <- values
   }
 
-  if (length(rows) == 0) {
-    return(data.frame())
-  }
-
-  # Converter lista de linhas para data.frame
-  # Primeiro, construir matriz de caracteres para evitar coerção prematura
+  # ── Build data.frame ────────────────────────────────────────────────────
   n_rows <- length(rows)
   df <- as.data.frame(
     matrix(nrow = n_rows, ncol = n_cols),
@@ -131,12 +119,11 @@
   for (i in seq_len(n_rows)) {
     for (j in seq_len(n_cols)) {
       val <- rows[[i]][[j]]
-      if (is.null(val)) val <- NA
-      df[i, j] <- val
+      df[i, j] <- if (is.null(val)) NA else val
     }
   }
 
-  # Aplicar tipos apropriados
+  # Apply column types
   for (j in seq_len(n_cols)) {
     df[[j]] <- .vigiar_converter_coluna(df[[j]], col_types[[j]]$type)
   }
@@ -144,30 +131,37 @@
   df
 }
 
-#' Converte uma coluna para o tipo R apropriado
-#' @param x Vetor com os valores
-#' @param type_code Código de tipo do Power BI
-#' @return Vetor convertido
+#' Resolve a single dictionary‑encoded value
+#' @keywords internal
+.vigiar_resolve_dict <- function(val, col_idx, col_types, value_dicts) {
+  dn <- col_types[[col_idx]]$dn
+  if (is.null(dn)) return(val)
+  dict <- value_dicts[[dn]]
+  if (is.null(dict)) return(val)
+  if (is.numeric(val) && val >= 1 && val <= length(dict)) {
+    return(dict[[as.integer(val)]])
+  }
+  val
+}
+
+#' Convert a column to the appropriate R type
+#' @param x Column vector.
+#' @param type_code Power BI data type code.
+#' @return Converted vector.
 #' @keywords internal
 .vigiar_converter_coluna <- function(x, type_code) {
-  # Converter NULLs para NA
+  # Replace NULL with NA
   x <- lapply(x, function(v) if (is.null(v)) NA else v)
 
   switch(as.character(type_code),
-    "1" = as.character(unlist(x)),       # Text
-    "2" = as.numeric(unlist(x)),         # Decimal/Currency
-    "3" = as.numeric(unlist(x)),         # Double
-    "4" = as.integer(unlist(x)),         # Integer
-    "5" = as.logical(unlist(x)),         # Boolean
-    "6" = as.Date(unlist(x)),            # Date
-    "7" = as.POSIXct(unlist(x),          # DateTime
-                     origin = "1970-01-01",
-                     tz = "UTC"),
-    "8" = as.numeric(unlist(x)),         # Int64 (as numeric in R)
-    as.character(unlist(x))              # default
+    `1` = as.character(unlist(x)),
+    `2` = as.numeric(unlist(x)),
+    `3` = as.numeric(unlist(x)),
+    `4` = as.integer(unlist(x)),
+    `5` = as.logical(unlist(x)),
+    `6` = as.Date(unlist(x)),
+    `7` = as.POSIXct(unlist(x), origin = "1970-01-01", tz = "UTC"),
+    `8` = as.numeric(unlist(x)),
+    as.character(unlist(x))  # fallback
   )
 }
-
-#' Operador NULL-coalesce: x %||% y retorna x a menos que seja NULL
-#' @keywords internal
-`%||%` <- function(x, y) if (is.null(x)) y else x

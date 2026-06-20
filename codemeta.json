@@ -1,0 +1,30 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "vigiar: Download Data from the VIGIAR Environmental Health Surveillance Dashboard",
+  "description": "R package to programmatically download the complete dataset from Brazil's VIGIAR (Vigilância em Saúde Ambiental) public Power BI dashboard. Provides PM2.5 air quality, population exposure, health indicators, and indoor exposure data.",
+  "version": "0.1.0",
+  "license": "https://spdx.org/licenses/MIT",
+  "codeRepository": "https://github.com/santosry/vigiar-download",
+  "issueTracker": "https://github.com/santosry/vigiar-download/issues",
+  "programmingLanguage": {
+    "@type": "ComputerLanguage",
+    "name": "R",
+    "version": ">= 4.0.0"
+  },
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Ryan",
+      "familyName": "Santos",
+      "email": "santosry@protonmail.com"
+    }
+  ],
+  "keywords": [
+    "R", "air-quality", "PM2.5", "public-health", "epidemiology",
+    "Brazil", "VIGIAR", "Power-BI", "environmental-health"
+  ],
+  "developmentStatus": "active",
+  "runtimePlatform": "R >= 4.0.0",
+  "operatingSystem": ["Windows", "Linux", "macOS"]
+}

@@ -1,21 +1,24 @@
 \name{vigiar_conectar}
 \alias{vigiar_conectar}
-\title{Conecta ao dashboard VIGIAR do Power BI}
+\title{Connect to the VIGIAR Power BI dashboard}
 \usage{
-vigiar_conectar(atualizar = FALSE, timeout = 30)
+vigiar_conectar(refresh = FALSE, timeout = 30, max_retries = 3)
 }
 \arguments{
-  \item{atualizar}{Se TRUE, forca uma nova conexao mesmo que ja exista uma sessao ativa.}
-  \item{timeout}{Tempo maximo (em segundos) para estabelecer a conexao.}
+  \item{refresh}{If \code{TRUE}, force a new session even if one exists.}
+  \item{timeout}{Maximum time in seconds to establish the connection.}
+  \item{max_retries}{Maximum number of retry attempts on transient failures.}
 }
-\value{Invisivelmente, uma lista com os dados da sessao.}
+\value{
+  Invisibly, a list of class \code{"vigiar_sessao"} with session data.
+}
 \description{
-Estabelece uma sessao com o dashboard publico do Power BI,
-obtendo cookies e tokens necessarios para as consultas de dados.
+  Establishes an anonymous session with the public VIGIAR Power BI
+  dashboard and fetches the conceptual schema (table and column metadata).
 }
 \examples{
 \dontrun{
 vigiar_conectar()
-vigiar_conectar(atualizar = TRUE)
+vigiar_conectar(refresh = TRUE, timeout = 60)
 }
 }

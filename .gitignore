@@ -4,10 +4,12 @@
 .RData
 .Ruserdata
 *.Rproj
+.Renviron
 
 # Package development
 vigiar_*.tar.gz
 vigiar_*.tgz
+revdep/
 
 # Temporary files
 *.swp
@@ -20,3 +22,12 @@ Thumbs.db
 inst/doc/
 vignettes/*.html
 vignettes/*.pdf
+
+# Code coverage
+covr_*
+*.lcov
+
+# pkgdown
+docs/
+_site/
+pkgdown/

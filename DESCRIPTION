@@ -1,22 +1,33 @@
 Package: vigiar
 Type: Package
-Title: Download Data from Brazil's VIGIAR Power BI Dashboard
+Title: Download Data from the VIGIAR Environmental Health Surveillance Dashboard
 Version: 0.1.0
 Authors@R: c(
-    person("Ryan", "Santos", role = c("aut", "cre"),
-           email = "santosry@protonmail.com"),
-    person("vigiar", "team", role = "ctb"))
-Description: Provides functions to download air quality (PM2.5),
-    population exposure, and health surveillance data from Brazil's
-    VIGIAR (Vigilância em Saúde Ambiental) Power BI dashboard,
-    maintained by the Brazilian Ministry of Health. The package
-    handles Power BI session management, API authentication,
-    automatic decompression of the DSR (Data Shape Response) format,
-    and returns tidy data frames ready for analysis.
+    person(given = "Ryan",
+           family = "Santos",
+           role = c("aut", "cre"),
+           email = "santosry@protonmail.com",
+           comment = c(ORCID = "0000-0000-0000-0000")),
+    person(given = "vigiar",
+           family = "team",
+           role = "ctb"))
+Description: Provides a programmatic interface to download the complete
+    dataset from Brazil's VIGIAR (Vigilância em Saúde Ambiental) public
+    Power BI dashboard, maintained by the Brazilian Ministry of Health.
+    The package handles Power BI anonymous session management, automatic
+    decompression of the DSR (Data Shape Response) format including
+    dictionary resolution, and returns tidy tibbles ready for analysis.
+    Data includes PM2.5 air quality (annual/monthly), days exceeding WHO
+    and CONAMA limits, population exposure by concentration category,
+    epidemiological health indicators (attributable fractions, mortality,
+    hospitalizations), and indoor solid fuel exposure.
 License: MIT + file LICENSE
-URL: https://github.com/santosry/vigiar-download
+URL: https://github.com/santosry/vigiar-download,
+     https://santosry.github.io/vigiar-download/
 BugReports: https://github.com/santosry/vigiar-download/issues
 Encoding: UTF-8
+Language: pt-BR
+Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Depends:
     R (>= 4.0.0)
@@ -30,6 +41,10 @@ Suggests:
     ggplot2,
     sf,
     knitr,
-    rmarkdown
+    rmarkdown,
+    withr,
+    cli
 VignetteBuilder: knitr
 Config/testthat/edition: 3
+Config/testthat/parallel: false
+SystemRequirements: Internet access for data download
