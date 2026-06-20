@@ -24,7 +24,8 @@ Description: Provides a programmatic interface to download, process,
     and indoor solid fuel exposure. Package architecture inspired by
     microdatasus (Saldanha et al.). Built on httr2, dplyr, and tibble.
 License: MIT + file LICENSE
-URL: https://github.com/santosry/vigiar-download
+URL: https://github.com/santosry/vigiar-download,
+     https://santosry.github.io/vigiar-download/
 BugReports: https://github.com/santosry/vigiar-download/issues
 Encoding: UTF-8
 Language: pt-BR

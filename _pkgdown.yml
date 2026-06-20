@@ -132,7 +132,6 @@ reference:
 - title: "S3 Classes and Methods"
   desc: "Typed data objects for VIGIAR domains."
   contents:
-  - new_vigiar_tbl
   - print.vigiar_tbl
   - summary.vigiar_tbl
   - validate.vigiar_tbl
