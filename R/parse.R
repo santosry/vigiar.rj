@@ -65,6 +65,9 @@
     entry <- dm0[[i]]
     if (!is.list(entry)) next
 
+    # Skip schema-only entries (no data values)
+    if (is.null(entry$C) && !is.null(entry$S)) next
+
     repeat_mask <- as.integer(entry$R %||% 0L)
     null_mask   <- as.integer(entry$`Ø` %||% entry[["S0"]] %||% 0L)
     changed     <- entry$C %||% list()
