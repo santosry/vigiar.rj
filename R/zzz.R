@@ -72,7 +72,7 @@ uuid_v4 <- function() {
   parts <- c(
     paste0(sample(hex, 8,  replace = TRUE), collapse = ""),
     paste0(sample(hex, 4,  replace = TRUE), collapse = ""),
-    paste0("4", sample(hex[1:4], 3, replace = TRUE), collapse = ""),
+    paste0("4", paste0(sample(hex[1:4], 3, replace = TRUE), collapse = "")),
     paste0(sample(c("8", "9", "a", "b"), 1),
            paste0(sample(hex, 3, replace = TRUE), collapse = ""),
            collapse = ""),

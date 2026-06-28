@@ -30,14 +30,29 @@ library(vigiar)
   rownames(dados) <- NULL
 
   if (with_issues) {
-    # Add some problems
-    dados$pm25_media_anual[1] <- -5           # Negative PM2.5
-    dados$cod_municipio[2] <- 999999L         # Invalid IBGE
-    dados <- rbind(dados, dados[3, ])         # Duplicate
-    dados$ano[4] <- 1800L                     # Invalid year
+    dados$pm25_media_anual[1] <- -5
+    dados$cod_municipio[2] <- 999999L
+    dados <- rbind(dados, dados[3, ])
+    dados$ano[4] <- 1800L
   }
 
   tibble::as_tibble(dados)
+}
+
+# Full RJ coverage (all 92 municipalities, 1 year each)
+.make_pm25_full <- function() {
+  municipios <- RJ_MUNICIPIOS$codigo_ibge
+  rows <- list()
+  for (m in municipios) {
+    rows[[length(rows) + 1]] <- data.frame(
+      cod_municipio = as.integer(m),
+      sigla_uf = "RJ",
+      ano = 2022L,
+      pm25_media_anual = runif(1, 10, 25),
+      stringsAsFactors = FALSE
+    )
+  }
+  tibble::as_tibble(do.call(rbind, rows))
 }
 
 # ── Diagnostic construction ───────────────────────────────────────────────────
@@ -50,12 +65,22 @@ test_that("new_vigiar_diagnostic creates proper structure", {
   expect_equal(diag$n_rows, 3)
 })
 
-test_that("vigiar_diagnosticar_serie works on clean data", {
+test_that("vigiar_diagnosticar_serie works on partial data (10 municipalities)", {
   dados <- .make_pm25_data()
   diag <- vigiar_diagnosticar_serie(dados, escopo = "rj")
   expect_s3_class(diag, "vigiar_diagnostic")
-  expect_equal(diag$severidade, "ok")
+  # 10 municipalities = ~10.8% -> should be 'problema' (not ok, not critico)
+  expect_equal(diag$severidade, "problema")
   expect_true(length(diag$resultados) > 0)
+})
+
+test_that("vigiar_diagnosticar_serie works on full RJ coverage", {
+  dados <- .make_pm25_full()
+  diag <- vigiar_diagnosticar_serie(dados, escopo = "rj")
+  expect_s3_class(diag, "vigiar_diagnostic")
+  # Full 92 municipalities should be ok
+  expect_equal(diag$severidade, "ok")
+  expect_equal(diag$metricas$rj_cobertura_pct, 100)
 })
 
 test_that("vigiar_diagnosticar_serie detects issues", {

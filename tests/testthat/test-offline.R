@@ -135,6 +135,7 @@ test_that(".vigiar_construir_query handles order_by", {
             Select = lapply(seq_along(schema), function(i) {
               list(
                 Name  = schema[[i]]$Name %||% paste0("col", i),
+                Type  = schema[[i]]$T %||% 1L,
                 Kind  = 1L, Depth = 0L,
                 Value = paste0("G", i - 1L)
               )
@@ -161,8 +162,8 @@ test_that(".vigiar_parse_dados handles simple flat table", {
   )
   dm0 <- list(
     list(S = schema, C = list(2020L, "SP", 25.5)),
-    list(R = 3L, C = list(30.1)),              # keep 2, 1 new
-    list(R = 2L, C = list("RJ", 18.2))          # keep 1, 2 new
+    list(R = 3L, C = list(30.1)),              # bitmask: cols 0,1 repeat, col 2 new
+    list(R = 1L, C = list("RJ", 18.2))          # bitmask: col 0 repeats, cols 1,2 new
   )
   names(schema) <- c("ano", "uf", "pm25")
   for (i in seq_along(schema)) schema[[i]]$Name <- names(schema)[i]
@@ -187,8 +188,8 @@ test_that(".vigiar_parse_dados resolves ValueDicts", {
 
   dm0 <- list(
     list(S = schema, C = list(1L, 0L)),
-    list(R = 2L, C = list(1L)),
-    list(R = 2L, C = list(2L))
+    list(R = 1L, C = list(1L)),               # bitmask: col 0 repeats, col 1 new -> "Rio de Janeiro"
+    list(R = 1L, C = list(2L))                # bitmask: col 0 repeats, col 1 new -> "Minas Gerais"
   )
   vd <- list(D0 = c("Sao Paulo", "Rio de Janeiro", "Minas Gerais"))
 
@@ -232,7 +233,7 @@ test_that(".vigiar_parse_dados pads short rows", {
 
   dm0 <- list(
     list(S = schema, C = list(1L, 2L, 3L)),
-    list(R = 2L, C = list(5L))  # R=2 → keep 1, C has 1 → 2 values total, needs pad
+    list(R = 1L, C = list(5L))  # bitmask: col 0 repeats, cols 1,2 new; col 2 padded with NA
   )
 
   resp <- .make_dsr_response(schema, dm0)
@@ -404,7 +405,7 @@ test_that("validate.vigiar_tbl detects issues", {
   df <- data.frame(x = numeric(0))
   out <- new_vigiar_tbl(df, tabela = "")
   attr(out, "vigiar_tabela") <- NULL
-  expect_warning(validate(out), "vigiar_tabela")
+  expect_warning(validate.vigiar_tbl(out), "vigiar_tabela")
 })
 
 # ── Summary functions ─────────────────────────────────────────────────────────

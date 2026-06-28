@@ -257,18 +257,27 @@ vigiar_checar_cobertura_temporal <- function(diag, dados,
   diag$tem_coluna_mes <- tem_mes
 
   if (tem_mes) {
-    meses <- as.integer(dados[[col_mes]])
-    meses <- meses[!is.na(meses)]
-    if (length(meses) > 0) {
-      meses_fora <- meses[meses < 1 | meses > 12]
+    # Filter to rows where BOTH ano and mes are non-NA (keep aligned)
+    valid_idx <- !is.na(dados[[col_ano]]) & !is.na(dados[[col_mes]])
+    anos_validos <- as.integer(dados[[col_ano]][valid_idx])
+    meses_validos <- as.integer(dados[[col_mes]][valid_idx])
+
+    if (length(meses_validos) > 0) {
+      meses_fora <- meses_validos[meses_validos < 1 | meses_validos > 12]
       if (length(meses_fora) > 0) {
         diag <- .vigiar_add_issue(diag, "problema",
           sprintf("%d meses fora de 1-12.", length(meses_fora)))
       }
 
+      # Count truly missing months (not invalid)
+      n_total_meses <- length(meses_validos)
+      diag$metricas$n_meses_ausentes <- sum(is.na(dados[[col_mes]]))
+
       # Check coverage per year
       for (y in anos_unicos) {
-        meses_ano <- sort(unique(meses[anos == y & !is.na(anos)]))
+        idx_y <- which(anos_validos == y)
+        if (length(idx_y) == 0) next
+        meses_ano <- sort(unique(meses_validos[idx_y]))
         missing_meses <- setdiff(1:12, meses_ano)
         if (length(missing_meses) > 0 && length(missing_meses) < 12) {
           diag <- .vigiar_add_issue(diag, "aviso",
@@ -277,7 +286,7 @@ vigiar_checar_cobertura_temporal <- function(diag, dados,
         }
       }
 
-      diag$metricas$n_meses_ausentes <- length(meses_fora)
+      diag$metricas$n_meses_invalidos <- length(meses_fora)
     }
   }
 
@@ -331,14 +340,16 @@ vigiar_checar_cobertura_espacial <- function(diag, dados,
     diag$metricas$rj_faltantes <- length(faltantes)
     diag$metricas$rj_cobertura_pct <- pct
 
-    if (pct < 50) {
+    if (pct < 5) {
       diag <- .vigiar_add_issue(diag, "critico",
         sprintf("Cobertura RJ: apenas %.0f%% (%d/92) municipios.", pct, length(presentes)))
-    } else if (pct < 80) {
+    } else if (pct < 30) {
       diag <- .vigiar_add_issue(diag, "problema",
-        sprintf("Cobertura RJ: %.0f%% (%d/92) municipios. Faltam: %s",
-                pct, length(presentes),
-                paste(utils::head(faltantes, 10), collapse = ", ")))
+        sprintf("Cobertura RJ baixa: %.0f%% (%d/92) municipios. Inferencias limitadas.", pct, length(presentes)))
+    } else if (pct < 60) {
+      diag <- .vigiar_add_issue(diag, "aviso",
+        sprintf("Cobertura RJ parcial: %.0f%% (%d/92) municipios. %d ausentes.",
+                pct, length(presentes), length(faltantes)))
     } else if (pct < 100) {
       diag <- .vigiar_add_issue(diag, "aviso",
         sprintf("Cobertura RJ: %.0f%% (%d/92) municipios. %d ausentes.",

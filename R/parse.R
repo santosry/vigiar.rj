@@ -69,10 +69,14 @@
     if (is.null(entry$C) && !is.null(entry$S)) next
 
     repeat_mask <- as.integer(entry$R %||% 0L)
-    # Power BI uses a special null-mask key (unicode null symbol).
-    # Find it by position or fall back to S0
-    null_key <- if ("S0" %in% names(entry)) "S0" else setdiff(names(entry), c("R", "C", "S"))[1]
-    null_mask <- as.integer(entry[[null_key]] %||% 0L)
+    # Power BI DSR uses unicode null-symbol as null-mask key.
+    # detect it via known aliases: "S0" first, then "O" (ASCII alias)
+    null_key <- "S0"
+    if (!null_key %in% names(entry)) {
+      null_key <- "O"
+      if (!null_key %in% names(entry)) null_key <- character(0)
+    }
+    null_mask <- if (length(null_key) > 0) as.integer(entry[[null_key]] %||% 0L) else 0L
     changed     <- entry$C %||% list()
 
     row_vals <- vector("list", n_cols)
