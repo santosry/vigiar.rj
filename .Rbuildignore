@@ -19,3 +19,4 @@
 ^\.\.Rcheck$
 ^renv\.lock$
 ^renv/
+^\.Rhistory$

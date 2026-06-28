@@ -8,23 +8,23 @@
 [![R >= 4.1.0](https://img.shields.io/badge/R-%3E%3D%204.1.0-blue.svg)](https://www.r-project.org/)
 <!-- badges: end -->
 
-Pacote R para download, processamento, validacao e diagnostico dos dados do
+Pacote R para download, processamento, validação e diagnóstico dos dados do
 [VIGIAR](https://app.powerbi.com/view?r=eyJrIjoiNmRhODQwNzItNThlOS00ZmQ4LWJjZmItZDYxOTNhOTRmYmFhIiwidCI6IjlhNTU0YWQzLWI1MmItNDg2Mi1hMzZmLTg0ZDg5MWU1YzcwNSJ9)
-(Vigilancia em Saude Ambiental) do Ministerio da Saude. Foco no estado do
-Rio de Janeiro, com 92 municipios e 9 macrorregioes de saude (SES-RJ).
+(Vigilância em Saúde Ambiental) do Ministério da Saúde. Foco no estado do
+Rio de Janeiro, com 92 municípios e 9 macrorregiões de saúde (SES-RJ).
 
-**vigiar desconfia dos dados antes de seduzir o pesquisador com graficos.**
+**vigiar desconfia dos dados antes de seduzir o pesquisador com gráficos.**
 
-## Instalacao
+## Instalação
 
 ```r
 # Instalar do GitHub
 devtools::install_github("santosry/vigiar")
 ```
 
-Dependencias: `httr2`, `jsonlite`, `tibble`, `dplyr`, `cli`, `openssl`.
+Dependências: `httr2`, `jsonlite`, `tibble`, `dplyr`, `cli`, `openssl`.
 
-## Exemplo rapido (20 linhas)
+## Exemplo rápido (20 linhas)
 
 ```r
 library(vigiar)
@@ -63,7 +63,7 @@ vigiar_desconectar()
 ### Download
 
 ```r
-# Listar tabelas disponiveis
+# Listar tabelas disponíveis
 vigiar_tabelas()
 
 # Ver schema de uma tabela
@@ -71,9 +71,9 @@ vigiar_esquema("df_anual")
 
 # Baixar tabela com filtro RJ
 pm25 <- vigiar_baixar_rj("df_anual")
-# Usa estrategia particionada (ASC + DESC) para cobrir todo o range
+# Usa estratégia particionada (ASC + DESC) para cobrir todo o range
 
-# Baixar varias tabelas
+# Baixar várias tabelas
 tudo <- vigiar_baixar_principais()
 
 # Download com cache local (reusa por 24h)
@@ -81,14 +81,14 @@ vigiar_cache_dir("~/vigiar_cache")
 dados <- vigiar_baixar_com_cache("df_anual")
 ```
 
-### Processamento e validacao
+### Processamento e validação
 
 ```r
 # Padronizar nomes de colunas
 pm25 <- process_pm25(dados, tipo = "anual")
-# Converte muni->cod_municipio, UF->sigla_uf, Media_pm25->pm25_media_anual
+# Converte muni→cod_municipio, UF→sigla_uf, Media_pm25→pm25_media_anual
 
-# Validar codigos IBGE
+# Validar códigos IBGE
 vigiar_validar_ibge(pm25, col_codigo = "cod_municipio")
 
 # Validar datas
@@ -98,16 +98,16 @@ vigiar_validar_datas(pm25)
 vigiar_checar_dados(pm25, tabela = "df_anual")
 ```
 
-### Diagnostico (NOVO v0.7.0)
+### Diagnóstico (v0.7.0)
 
 ```r
-# Diagnostico completo de serie temporal
+# Diagnóstico completo de série temporal
 diag <- vigiar_diagnosticar_serie(pm25)
 
-# Severidade: ok | aviso | problema | critico
+# Severidade: ok | aviso | problema | crítico
 diag$severidade
 
-# Relatorio detalhado
+# Relatório detalhado
 vigiar_relatorio_diagnostico(diag)
 
 # Checks individuais
@@ -119,7 +119,7 @@ vigiar_checar_cobertura_temporal(diag, pm25, "ano")
 vigiar_checar_cobertura_espacial(diag, pm25, "cod_municipio", uf = "RJ")
 ```
 
-### Series temporais e agregacao
+### Séries temporais e agregação
 
 ```r
 # Agregar por ano
@@ -127,27 +127,27 @@ anual <- vigiar_agregar_tempo(pm25, agregar_por = "ano",
   variavel = "pm25_media_anual",
   funcoes = list(media = mean, dp = sd, n = length))
 
-# Tendencia descritiva
+# Tendência descritiva
 tend <- vigiar_tendencia_descritiva(pm25, variavel = "pm25_media_anual")
 # Retorna: ano, media, variacao_anual (%), media_movel
 
-# Serie temporal por UF
+# Série temporal por UF
 uf_series <- vigiar_serie_temporal(pm25, nivel = "uf")
 ```
 
 ### Rio de Janeiro
 
 ```r
-# 92 municipios com macrorregioes de saude
+# 92 municípios com macrorregiões de saúde
 rj <- vigiar_rj_municipios()
 
-# 9 macrorregioes
+# 9 macrorregiões
 vigiar_rj_macrorregioes()
 
-# Agregar por macrorregiao
+# Agregar por macrorregião
 resumo <- vigiar_rj_resumo(pm25, agregacao = "macrorregiao")
 
-# Validar se dados contem apenas RJ
+# Validar se dados contêm apenas RJ
 vigiar_validar_rj(pm25)
 ```
 
@@ -159,11 +159,11 @@ audit <- vigiar_auditar(pm25, tabela = "df_anual")
 print(audit)
 # Schema, IBGE, temporal, unidades, cobertura, checksums
 
-# Multiplos perfis de compliance
+# Múltiplos perfis de compliance
 comp <- vigiar_compliance_check(pm25, tabela = "df_anual",
   profiles = c("basico", "rigoroso", "rj", "corrupcao"))
 
-# Checksum deterministico (SHA256)
+# Checksum determinístico (SHA256)
 vigiar_checksum(pm25)
 
 # Exportar auditoria em JSON
@@ -173,7 +173,7 @@ vigiar_exportar_auditoria(audit, "auditoria_pm25.json")
 ### Benchmark
 
 ```r
-# Comparar estrategias de download
+# Comparar estratégias de download
 bench <- vigiar_benchmark("df_anual",
   strategies = c("direct", "year_asc_desc", "minimal_columns"),
   repeticoes = 3)
@@ -188,13 +188,13 @@ vigiar_health_check()
 ### Logging
 
 ```r
-# Visualizar log de operacoes
+# Visualizar log de operações
 vigiar_log()
 
 # Resumo do log
 vigiar_resumo_log()
 
-# Historico de downloads
+# Histórico de downloads
 vigiar_historico_downloads()
 
 # Exportar log
@@ -214,15 +214,15 @@ vigiar_verificar_snapshot(snap)  # TRUE/FALSE
 vigiar_salvar_snapshot(snap, "snapshot.rds")
 snap2 <- vigiar_carregar_snapshot("snapshot.rds")
 
-# Comparar duas versoes
+# Comparar duas versões
 diffs <- vigiar_comparar_snapshots(snap, snap2)
 
-# Congelar schema para detectar mudancas
+# Congelar schema para detectar mudanças
 vigiar_esquema_lock("schema_lock.json")
 vigiar_esquema_verificar("schema_lock.json")
 ```
 
-### Exportacao
+### Exportação
 
 ```r
 vigiar_exportar_csv(pm25, "pm25_rj.csv")
@@ -230,66 +230,66 @@ vigiar_exportar_rds(pm25, "pm25_rj.rds")  # Preserva metadata
 vigiar_exportar_parquet(pm25, "pm25_rj.parquet")  # Requer arrow
 ```
 
-### Dicionario
+### Dicionário
 
 ```r
-# Dicionario completo
+# Dicionário completo
 dict <- vigiar_dicionario()
 
-# Variaveis de um dominio
+# Variáveis de um domínio
 vigiar_variaveis("pm25")
 vigiar_variaveis("indicadores_saude")
 
-# Descrever uma variavel
+# Descrever uma variável
 vigiar_descrever_variavel("pm25", "pm25_media_anual")
 
-# Abrir pagina de convencoes
+# Abrir página de convenções
 vigiar_convencoes()
 ```
 
-## Tabelas disponiveis
+## Tabelas disponíveis
 
-| Tabela | Descricao | Categoria |
+| Tabela | Descrição | Categoria |
 |--------|-----------|-----------|
-| `df_anual` | Medias anuais PM2.5 | Qualidade do Ar |
-| `df_mensal` | Medias mensais PM2.5 | Qualidade do Ar |
-| `df_dias` | Dias criticos (OMS) | Qualidade do Ar |
-| `df_dias_conama` | Dias criticos (CONAMA) | Qualidade do Ar |
-| `pop` | Populacao exposta | Populacao |
-| `df_muni` | Cadastro de municipios | Cadastro |
-| `tb_brasil` | Indicadores Brasil | Saude |
-| `tb_uf` | Indicadores por UF | Saude |
-| `tb_muni` | Indicadores por municipio | Saude |
-| `tb_fracao` | Fracao atribuivel | Saude |
-| `tb_quartis` | Quartis | Saude |
-| `df_indoor` | Exposicao indoor | Indoor |
+| `df_anual` | Médias anuais PM2.5 | Qualidade do Ar |
+| `df_mensal` | Médias mensais PM2.5 | Qualidade do Ar |
+| `df_dias` | Dias críticos (OMS) | Qualidade do Ar |
+| `df_dias_conama` | Dias críticos (CONAMA) | Qualidade do Ar |
+| `pop` | População exposta | População |
+| `df_muni` | Cadastro de municípios | Cadastro |
+| `tb_brasil` | Indicadores Brasil | Saúde |
+| `tb_uf` | Indicadores por UF | Saúde |
+| `tb_muni` | Indicadores por município | Saúde |
+| `tb_fracao` | Fração atribuível | Saúde |
+| `tb_quartis` | Quartis | Saúde |
+| `df_indoor` | Exposição indoor | Indoor |
 | `df_indoor_desfecho` | Desfechos indoor | Indoor |
 | `medidas` | Medidas calculadas | Medidas |
 
-Use `vigiar_info()` para catalogo completo com descricoes e categorias.
+Use `vigiar_info()` para catálogo completo com descrições e categorias.
 
-## Limitacoes
+## Limitações
 
 - **API Power BI**: limita respostas a ~30K linhas. Use `vigiar_baixar_rj()` para
   tabelas grandes (download ASC + DESC particionado).
-- **Schema instavel**: o dashboard pode mudar sem aviso. Use `vigiar_esquema_lock()`
+- **Schema instável**: o dashboard pode mudar sem aviso. Use `vigiar_esquema_lock()`
   para congelar e `vigiar_status()` para verificar.
-- **Cobertura**: nem todos os 92 municipios do RJ tem dados em todos os anos.
-- **Dados secundarios**: o pacote baixa dados publicos, nao os gera. Validacao e
-  obrigatoria antes de qualquer analise.
-- **Inferencia causal**: baixar dados nao e modelar. O pacote prepara dados;
+- **Cobertura**: nem todos os 92 municípios do RJ têm dados em todos os anos.
+- **Dados secundários**: o pacote baixa dados públicos, não os gera. Validação é
+  obrigatória antes de qualquer análise.
+- **Inferência causal**: baixar dados não é modelar. O pacote prepara dados;
   modelos (GAM, DLNM) devem ser feitos externamente.
-- **Dependencia externa**: o pacote depende do portal Power BI do Ministerio da Saude.
+- **Dependência externa**: o pacote depende do portal Power BI do Ministério da Saúde.
   Se o portal sair do ar, o download falha.
 
-## Citacao
+## Citação
 
-Para citar o pacote em trabalhos academicos:
+Para citar o pacote em trabalhos acadêmicos:
 
 > Santos, R. (2026). vigiar: Download Data from the VIGIAR Environmental Health
-> Surveillance Dashboard. R package version 0.7.0.
+> Surveillance Dashboard. R package version 0.7.1.9000.
 > https://github.com/santosry/vigiar
 
-## Licenca
+## Licença
 
-MIT. Os dados baixados pertencem ao Ministerio da Saude / VIGIAR.
+MIT. Os dados baixados pertencem ao Ministério da Saúde / VIGIAR.
