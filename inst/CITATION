@@ -1,4 +1,4 @@
-citHeader("Para citar o pacote vigiar.rj em publicacoes, use:")
+citHeader("To cite the vigiar package in publications, use:")
 
 bibentry(
   bibtype    = "Manual",
@@ -16,4 +16,4 @@ bibentry(
   )
 )
 
-citFooter("Dados: Ministerio da Saude — VIGIAR (Vigilancia em Saude Ambiental).")
+citFooter("Data source: Brazilian Ministry of Health, VIGIAR Environmental Health Surveillance.")

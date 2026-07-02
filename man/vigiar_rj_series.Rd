@@ -7,7 +7,7 @@
 vigiar_rj_series(dados, agregacao = c("macrorregiao", "regiao_saude"))
 }
 \arguments{
-\item{dados}{A processed VIGIAR tibble with cod_municipio.}
+\item{dados}{A processed VIGIAR tibble with municipality codes.}
 
 \item{agregacao}{"macrorregiao" or "regiao_saude".}
 }

@@ -12,8 +12,8 @@ repository-code: "https://github.com/santosry/vigiar-download"
 url: "https://github.com/santosry/vigiar-download"
 abstract: >
   R package to programmatically download the complete dataset
-  from Brazil's VIGIAR (Vigilância em Saúde Ambiental) public
-  Power BI dashboard, maintained by the Brazilian Ministry of Health.
+  from Brazil's VIGIAR Environmental Health Surveillance public Power BI
+  dashboard, maintained by the Brazilian Ministry of Health.
   Provides PM2.5 air quality data, population exposure, epidemiological
   health indicators, and indoor solid fuel exposure.
 keywords:

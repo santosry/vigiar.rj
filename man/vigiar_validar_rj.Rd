@@ -15,5 +15,6 @@ vigiar_validar_rj(dados, col_muni = NULL)
 Invisibly, a list with validation results.
 }
 \description{
-Checks IBGE codes, flags non-RJ municipalities, and reports issues.
+Checks municipality codes, flags non-RJ municipalities, and reports missing
+Rio de Janeiro municipalities using the internal 92-municipality registry.
 }

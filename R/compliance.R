@@ -339,20 +339,22 @@ print.vigiar_compliance <- function(x, ...) {
     return(list(ok = TRUE, details = "Sem coluna de codigo IBGE"))
   }
 
-  codigos <- as.integer(dados[[col_muni]])
-  codigos <- codigos[!is.na(codigos)]
+  raw_codes <- dados[[col_muni]]
+  normalized <- .vigiar_normalizar_codigo_municipio(raw_codes)
+  codigos <- normalized[!is.na(normalized)]
+  raw_non_missing <- raw_codes[!is.na(raw_codes)]
 
-  if (length(codigos) == 0) {
+  if (length(raw_non_missing) == 0) {
     return(list(ok = TRUE, details = "Nenhum codigo IBGE nos dados"))
   }
 
-  invalidos <- codigos[codigos < 110001 | codigos > 530010]
-  validos <- codigos[codigos >= 110001 & codigos <= 530010]
+  invalidos <- raw_codes[is.na(normalized) & !is.na(raw_codes)]
+  validos <- codigos
 
   ok <- length(invalidos) == 0
   details <- sprintf(
     "%d codigos IBGE, %d validos, %d fora do intervalo esperado",
-    length(codigos), length(validos), length(invalidos)
+    length(raw_non_missing), length(validos), length(invalidos)
   )
 
   if (verbose) {
@@ -365,7 +367,7 @@ print.vigiar_compliance <- function(x, ...) {
 
   list(
     ok        = ok,
-    n_total   = length(codigos),
+    n_total   = length(raw_non_missing),
     n_validos = length(validos),
     n_invalidos = length(invalidos),
     codigos_invalidos = invalidos,
@@ -492,10 +494,10 @@ print.vigiar_compliance <- function(x, ...) {
     return(list(ok = FALSE, details = "Sem coluna de municipio para checagem RJ"))
   }
 
-  codigos <- unique(dados[[col_muni]])
+  codigos <- unique(.vigiar_normalizar_codigo_municipio(dados[[col_muni]]))
   codigos <- codigos[!is.na(codigos)]
 
-  rj_codes <- RJ_MUNICIPIOS$codigo_ibge
+  rj_codes <- RJ_MUNICIPIOS$codigo_ibge_6
   presentes <- intersect(codigos, rj_codes)
   faltantes <- setdiff(rj_codes, codigos)
 

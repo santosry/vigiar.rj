@@ -1,3 +1,43 @@
+# vigiar 0.7.1.9000
+
+## Rio de Janeiro completeness hardening
+
+* Added `vigiar_baixar_rj()` with RJ registry filtering, 92-municipality
+  coverage metadata, optional cache, optional snapshots, and explicit failure
+  when full RJ coverage is required but not present.
+* Added `vigiar_rj_cobertura()` and `vigiar_rj_municipios_ausentes()` for
+  coverage checks overall, by year, by month, by year-month, by health
+  macro-region, and by health region.
+* Added `vigiar_rj_completude_tabela()` for table-aware RJ completeness checks,
+  including municipality x year for annual tables and municipality x year x
+  month for monthly tables.
+* Added `vigiar_baixar_municipio()` for code-based municipality downloads with
+  metadata, coverage status, and truncation alerts. Campos dos Goytacazes is
+  covered by a sentinel test using `330100` and `3301009`.
+* Added safe municipality code normalization for 6-digit and 7-digit IBGE
+  codes. The package standard remains the 6-digit IBGE municipality code, with
+  7-digit RJ codes stored in the internal registry for interoperability.
+* Added an IBGE reference fixture for the 92 RJ municipality codes and sentinel
+  tests for Campos dos Goytacazes, Sao Francisco de Itabapoana, Sao Joao da
+  Barra, and all 9 health macro-regions.
+* Added `vigiar_baixar_rj_completo()` as an honest preparatory interface for
+  partitioned downloads. It does not claim completeness when validated
+  server-side filters are unavailable.
+* Added `vigiar_esquema_verificar_critico()` and a critical schema lock fixture
+  for RJ PM2.5, municipality, coordinate, and population workflows.
+* Added `vigiar_plot_pm25_rj()` for optional exploratory PM2.5 plots when
+  `ggplot2` is installed.
+* Integrated RJ coverage and possible API truncation into
+  `vigiar_diagnosticar_serie(..., escopo = "rj")`.
+* Strengthened PM2.5 diagnostics for negative values, suspicious zeros,
+  implausible extremes, long missing blocks, and abrupt series changes.
+* Added offline RJ completeness tests, an optional online RJ download test, and
+  `data-raw/check-rj-download-completeness.R` for manual source validation.
+* Updated README, pkgdown reference, and vignettes with offline-safe RJ
+  examples and scientific caveats about aggregate data, source availability,
+  truncation, ecological inference, and the package boundary around causal
+  modelling, GAM, DLNM, relative-risk, and machine-learning analyses.
+
 # vigiar 0.7.0
 
 ## New: Benchmark & Performance

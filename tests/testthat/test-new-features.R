@@ -4,7 +4,7 @@
 library(testthat)
 library(vigiar)
 
-# ── Benchmark ─────────────────────────────────────────────────────────────────
+# -- Benchmark -----------------------------------------------------------------
 
 test_that("vigiar_benchmark errors without session", {
   expect_error(vigiar_benchmark("df_anual"), "Nenhuma sessao")
@@ -23,7 +23,7 @@ test_that("vigiar_health_check errors gracefully without connection", {
   expect_s3_class(result, "error")
 })
 
-# ── Compliance & Audit ────────────────────────────────────────────────────────
+# -- Compliance & Audit --------------------------------------------------------
 
 test_that("vigiar_auditar runs on a simple data frame", {
   dados <- data.frame(
@@ -138,7 +138,7 @@ test_that("vigiar_exportar_auditoria writes JSON", {
   expect_true(file.exists(tmp))
 })
 
-# ── Logging ───────────────────────────────────────────────────────────────────
+# -- Logging -------------------------------------------------------------------
 
 test_that("vigiar_log returns empty tibble initially", {
   # Clear log first
@@ -213,7 +213,7 @@ test_that("vigiar_resumo_downloads works", {
   expect_message(vigiar_resumo_downloads(), "Downloads")
 })
 
-# ── Snapshot ──────────────────────────────────────────────────────────────────
+# -- Snapshot ------------------------------------------------------------------
 
 test_that("vigiar_snapshot creates object from data frame", {
   dados <- data.frame(x = 1:3, y = letters[1:3])
@@ -276,7 +276,7 @@ test_that("vigiar_comparar_snapshots detects column changes", {
   expect_true("cols_added" %in% names(diffs) || "cols_removed" %in% names(diffs))
 })
 
-# ── Cache ─────────────────────────────────────────────────────────────────────
+# -- Cache ---------------------------------------------------------------------
 
 test_that("vigiar_cache_dir sets and gets directory", {
   old_cache <- .vigiar_env$cache_dir
@@ -326,7 +326,7 @@ test_that("vigiar_baixar_com_cache errors without session", {
   expect_error(vigiar_baixar_com_cache("df_anual"), "Nenhuma sessao")
 })
 
-# ── Schema Lock ───────────────────────────────────────────────────────────────
+# -- Schema Lock ---------------------------------------------------------------
 
 test_that("vigiar_esquema_lock errors without session", {
   expect_error(vigiar_esquema_lock(), "Nenhuma sessao")
@@ -361,7 +361,7 @@ test_that("vigiar_esquema_verificar errors without session", {
   expect_error(vigiar_esquema_verificar(), "Nenhuma sessao")
 })
 
-# ── Export edge cases ─────────────────────────────────────────────────────────
+# -- Export edge cases ---------------------------------------------------------
 
 test_that("vigiar_exportar_log refuses to overwrite", {
   .vigiar_env$log <- list()
@@ -399,7 +399,7 @@ test_that("vigiar_checksum is deterministic across calls", {
   expect_equal(h1, h2)
 })
 
-# ── Edge cases: empty data ────────────────────────────────────────────────────
+# -- Edge cases: empty data ----------------------------------------------------
 
 test_that("vigiar_auditar handles empty data frame", {
   dados <- data.frame(
@@ -426,7 +426,7 @@ test_that("vigiar_snapshot handles many columns", {
   expect_equal(snap$n_cols, n)
 })
 
-# ── Profile-specific compliance ───────────────────────────────────────────────
+# -- Profile-specific compliance -----------------------------------------------
 
 test_that("vigiar_compliance_check profile 'basico' works", {
   dados <- data.frame(cod_municipio = 355030L, ano = 2022L)
@@ -453,7 +453,7 @@ test_that("vigiar_compliance_check invalid profile errors", {
   )
 })
 
-# ── Log metadata round-trip ───────────────────────────────────────────────────
+# -- Log metadata round-trip ---------------------------------------------------
 
 test_that(".vigiar_log metadata is preserved in log", {
   .vigiar_env$log <- list()

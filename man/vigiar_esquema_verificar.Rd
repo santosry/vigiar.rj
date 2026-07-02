@@ -4,10 +4,12 @@
 \alias{vigiar_esquema_verificar}
 \title{Verify schema against a lock}
 \usage{
-vigiar_esquema_verificar(lock_path = "vigiar_schema_lock.json")
+vigiar_esquema_verificar(lock_path = "vigiar_schema_lock.json", error = FALSE)
 }
 \arguments{
 \item{lock_path}{Path to lock file, or a \code{vigiar_schema_lock} object.}
+
+\item{error}{If \code{TRUE}, error when differences are found.}
 }
 \value{
 Invisibly, a list of differences (empty if identical).

@@ -1,10 +1,10 @@
 ---
-title: "Fluxo de Download e Processamento"
+title: "Download and Processing Flow"
 author: "Ryan Santos"
 date: "2026-06-20"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Fluxo de Download e Processamento}
+  %\VignetteIndexEntry{Download and Processing Flow}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,146 +17,79 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Visao Geral
+## Flow
 
-O pacote `vigiar` segue a arquitetura do `microdatasus`:
+The package follows a simple reproducible flow:
 
-1. **Download** - dados brutos do Power BI
-2. **Processamento** - padronizacao e validacao
-3. **Uso** - analise com dados limpos
+1. Download raw data from Power BI.
+2. Filter and verify the intended scope.
+3. Process column names and types.
+4. Validate coverage, units, dates, and identifiers.
+5. Save snapshots or audit reports when needed.
 
 ```r
-vigiar_baixar("df_anual") |>
-  process_vigiar(tabela = "df_anual") |>
-  vigiar_checar_dados("df_anual")
+pm25 <- vigiar_baixar_rj("df_anual", validar_cobertura = TRUE) |>
+  process_pm25(tipo = "anual")
+
+diag <- vigiar_diagnosticar_serie(pm25, escopo = "rj")
+vigiar_relatorio_diagnostico(diag)
 ```
 
-## Passo 1 - Download Bruto
+## Raw Download
 
-```{r, eval=FALSE}
-library(vigiar)
-
+```r
 vigiar_conectar()
 
-# Download de dados brutos
-dados_brutos <- vigiar_baixar("df_anual")
-
-# Os dados brutos tem nomes de colunas originais do Power BI
-names(dados_brutos)
-# [1] "muni"       "UF"         "ano"        "Media_pm25" "Categoria_pm25" ...
+raw <- vigiar_baixar("df_anual", uf = NULL)
+names(raw)
 ```
 
-## Passo 2 - Processamento
+Raw Power BI columns can include names such as `muni`, `UF`, `ano`,
+`Media_pm25`, and `Categoria_pm25`.
 
-```{r, eval=FALSE}
-# Processamento automatico (detecta o tipo pela tabela)
-dados_processados <- process_vigiar(dados_brutos, tabela = "df_anual")
+## RJ-Specific Download
 
-# Ou processamento explicito
-pm25 <- vigiar_baixar("df_anual") |> process_pm25()
+```r
+pm25_rj <- vigiar_baixar_rj("df_anual", validar_cobertura = TRUE)
 
-# Nomes padronizados
+attr(pm25_rj, "vigiar_rj_n_municipios")
+attr(pm25_rj, "vigiar_rj_n_esperado")
+attr(pm25_rj, "vigiar_rj_cobertura_pct")
+```
+
+This step uses the internal 92-municipality registry. It does not rely on a
+numeric code interval alone.
+
+## Processing
+
+```r
+pm25 <- process_pm25(pm25_rj, tipo = "anual")
 names(pm25)
-# [1] "cod_municipio"     "sigla_uf"         "ano"
-# [4] "pm25_media_anual"  "categoria_oms"    "categoria_conama"
 ```
 
-## Passo 3 - Validacao
+Common mappings are:
 
-```{r, eval=FALSE}
-# Diagnostico de qualidade
-vigiar_checar_dados(pm25, "df_anual")
+| Raw Power BI name | Standard vigiar name | Meaning |
+| --- | --- | --- |
+| `muni`, `ID_MUNI` | `cod_municipio` | 6-digit IBGE municipality code |
+| `UF`, `UF_SIGLA` | `sigla_uf` | Brazilian state abbreviation |
+| `Media_pm25` | `pm25_media_anual` | Annual PM2.5 mean |
+| `pm25` | `pm25_media` | Monthly PM2.5 mean |
+| `n_dias` | `n_dias_criticos` | Days above reference |
+| `LAT`, `LON` | `latitude`, `longitude` | Coordinates |
+| `Indicador` | `indicador` | Health indicator |
+| `est` | `estimativa` | Point estimate |
+| `low`, `high` | `ic_inferior`, `ic_superior` | 95 percent interval |
+| `pop` | `populacao` | Population |
+| `Code` | `cod_uf` | State code |
+| `Ano` | `ano` | Year |
 
-# Validacao de tipos e intervalos
-validate.vigiar_tbl(pm25)
+## Snapshots
 
-# Resumo estatistico
-summary(pm25)
+```r
+snap <- vigiar_snapshot(dados = pm25, tabela = "df_anual")
+vigiar_verificar_snapshot(snap)
+vigiar_salvar_snapshot(snap, "pm25-rj-snapshot.rds")
 ```
 
-## Pipeline Completo
-
-```{r, eval=FALSE}
-# PM2.5
-pm25 <- vigiar_baixar("df_anual") |>
-  process_pm25()
-
-# Indicadores de saude - Brasil
-saude_brasil <- vigiar_baixar("tb_brasil") |>
-  process_indicadores_saude(agregacao = "brasil")
-
-# Indicadores de saude - UF
-saude_uf <- vigiar_baixar("tb_uf") |>
-  process_indicadores_saude(agregacao = "uf")
-
-# Fracao atribuivel
-fracao <- vigiar_baixar("tb_fracao") |>
-  process_fracao_atribuivel()
-
-# Exposicao indoor
-indoor <- vigiar_baixar("df_indoor") |>
-  process_exposicao_indoor()
-
-# Populacao exposta
-pop <- vigiar_baixar("pop") |>
-  process_populacao_exposta()
-
-# Cadastro de municipios
-muni <- vigiar_baixar("df_muni") |>
-  process_municipios()
-```
-
-## Mapeamento de Nomes
-
-| Original (Power BI) | Padronizado (vigiar) | Descricao |
-|---------------------|----------------------|-----------|
-| `muni` / `ID_MUNI` | `cod_municipio` | Codigo IBGE do municipio |
-| `UF` / `UF_SIGLA` | `sigla_uf` | Sigla da UF |
-| `Media_pm25` | `pm25_media_anual` | Media anual PM2.5 |
-| `pm25` | `pm25_media` | Media mensal PM2.5 |
-| `n_dias` | `n_dias_criticos` | Dias acima do limite |
-| `LAT` / `LON` | `latitude` / `longitude` | Coordenadas |
-| `Indicador` | `indicador` | Indicador epidemiologico |
-| `est` | `estimativa` | Estimativa pontual |
-| `low` / `high` | `ic_inferior` / `ic_superior` | IC 95% |
-| `desfecho` | `desfecho` | Desfecho de saude |
-| `pop` | `populacao` | Populacao |
-| `Code` | `cod_uf` | Codigo da UF |
-| `Ano` | `ano` | Ano |
-
-## Classes S3
-
-O processamento atribui classes S3 aos dados:
-
-| Classe | Dominio |
-|--------|---------|
-| `vigiar_tbl` | Classe base para todos os dados processados |
-| `vigiar_pm25` | Dados de qualidade do ar |
-| `vigiar_health` | Indicadores de saude |
-| `vigiar_population` | Dados populacionais |
-| `vigiar_attributable_fraction` | Fracao atribuivel |
-| `vigiar_indoor` | Exposicao indoor |
-| `vigiar_municipios` | Cadastro de municipios |
-| `vigiar_uf` | Dados agregados por UF |
-
-```{r, eval=FALSE}
-class(pm25)
-# [1] "vigiar_pm25"  "vigiar_air_quality"  "vigiar_tbl"
-# [4] "tbl_df"       "tbl"                 "data.frame"
-```
-
-## Metadados
-
-Cada tibble processado carrega atributos com metadados:
-
-```{r, eval=FALSE}
-attr(pm25, "vigiar_metadados")
-# $fonte
-# [1] "VIGIAR - Ministerio da Saude"
-# $tabela_raw
-# [1] "df_anual"
-# $unidade_pm25
-# [1] "ug/m3"
-# $processador
-# [1] "process_pm25"
-```
+Snapshots preserve data attributes, including RJ coverage metadata.

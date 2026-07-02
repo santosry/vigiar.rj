@@ -1,5 +1,5 @@
 # =============================================================================
-# vigiar — Script de validacao independente (offline + online)
+# vigiar - independent validation script (offline + online)
 #
 # Uso:
 #   source("testar_vigiar.R")           # apenas testes offline

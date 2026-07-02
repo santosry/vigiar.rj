@@ -1,66 +1,60 @@
 ---
-title: "Uso Responsavel dos Dados VIGIAR"
+title: "Responsible Use of VIGIAR Data"
 author: "Ryan Santos"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Uso Responsavel dos Dados VIGIAR}
+  %\VignetteIndexEntry{Responsible Use of VIGIAR Data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include=FALSE}
+```{r, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-## Fonte dos Dados
+## Source
 
-Os dados sao do **VIGIAR** (Vigilancia em Saude Ambiental),
-Ministerio da Saude do Brasil, disponibilizados publicamente via
-Power BI "Publish to Web".
+The package accesses public VIGIAR data made available through Power BI
+"Publish to Web" by Brazil's Ministry of Health.
 
-## Limitacoes dos Dados
+## Main Limitations
 
 ### PM2.5
 
-- Estimado por modelo de satelite, nao medido em estacoes de superficie.
-- Resolucao espacial limitada; interpolacao pode suavizar hotspots.
-- Medias anuais/mensais mascaram picos diarios.
+- PM2.5 may be estimated or modelled, not measured by a ground station in every
+  municipality.
+- Spatial resolution can smooth local hotspots.
+- Annual or monthly averages can hide short high-exposure events.
 
-### Populacao Exposta
+### Population Exposure
 
-- Usa projecoes populacionais do IBGE, nao contagens censitarias.
-- Assume distribuicao homogenea dentro do municipio.
-- Nao considera mobilidade pendular ou exposicao ocupacional.
+- Population counts can be projections rather than direct census counts.
+- Aggregate exposure assumes spatial patterns that may not hold within every
+  municipality.
+- Commuting, occupational exposure, and indoor exposure are not resolved at the
+  individual level.
 
-### Indicadores de Saude
+### Health Indicators
 
-- Fracoes atribuiveis sao estimativas baseadas em risco relativo
-  de estudos internacionais, nao em medidas diretas.
-- Intervalos de confianca refletem incerteza do modelo, nao erro amostral.
-- Nao estabelecem causalidade individual.
+- Attributable fractions are model-based epidemiologic estimates.
+- Confidence intervals describe model uncertainty, not individual diagnosis.
+- Aggregate indicators do not establish individual causality.
 
-## Riscos de Interpretacao
+## Interpretation Risks
 
-- **Nao use para inferencia causal**: o pacote fornece dados
-  observacionais agregados. Associacoes ecologicas nao provam
-  causalidade.
-- **Cuidado com rankings municipais**: municipios pequenos tem
-  estimativas mais imprecisas.
-- **Nao compare anos isolados**: use series temporais e tendencias.
+- Do not make causal claims from ecological aggregates alone.
+- Do not rank municipalities without checking coverage and uncertainty.
+- Do not compare isolated years without inspecting the time series.
+- Treat "data available" and "data complete for the research question" as
+  different claims.
+- Check possible Power BI API truncation before reporting completeness.
 
-## LGPD e Privacidade
+## Privacy
 
-- Todos os dados sao **agregados e anonimizados**.
-- Nenhum dado individual ou identificavel esta presente.
-- O pacote nao coleta, armazena ou transmite dados pessoais.
+The package downloads aggregate public data. It does not collect, store, or
+transmit individual-level personal data.
 
-## Citacao
+## AI Use Statement
 
-```r
-citation("vigiar")
-```
-
-## Declaracao de IA
-
-Este pacote utilizou DeepSeek v4 Pro e ChatGPT GPT-5.5 para
-revisao de codigo e documentacao. Veja `AI_USE_DECLARATION.md`.
+See `AI_USE_DECLARATION.md` for the repository statement about AI-assisted code
+and documentation review.

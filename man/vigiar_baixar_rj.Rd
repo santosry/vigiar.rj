@@ -2,21 +2,58 @@
 % Please edit documentation in R/rj.R
 \name{vigiar_baixar_rj}
 \alias{vigiar_baixar_rj}
-\title{Download Rio de Janeiro VIGIAR data (convenience)}
+\title{Download Rio de Janeiro VIGIAR data with completeness metadata}
 \usage{
-vigiar_baixar_rj(tabela, strategy = c("auto", "direct", "year"), ...)
+vigiar_baixar_rj(
+  tabela,
+  colunas = NULL,
+  ordenar_por = NULL,
+  limite = NULL,
+  timeout = 120,
+  validar_cobertura = TRUE,
+  exigir_completo = FALSE,
+  require_complete = exigir_completo,
+  processar = FALSE,
+  tipo = NULL,
+  usar_cache = FALSE,
+  snapshot = FALSE,
+  ...
+)
 }
 \arguments{
 \item{tabela}{Table name.}
 
-\item{strategy}{Download strategy: \code{"auto"} (default, chooses best),
-\code{"direct"} (single download), or \code{"year"} (ASC+DESC partition).}
+\item{colunas}{Optional character vector of column names.}
 
-\item{...}{Additional arguments passed to vigiar_baixar().}
+\item{ordenar_por}{Optional column used to sort the Power BI query.}
+
+\item{limite}{Optional row limit passed to the Power BI query.}
+
+\item{timeout}{Timeout in seconds for the HTTP request.}
+
+\item{validar_cobertura}{If \code{TRUE}, report RJ coverage after download.}
+
+\item{exigir_completo}{If \code{TRUE}, error unless all 92 municipalities
+are present.}
+
+\item{require_complete}{English alias for \code{exigir_completo}. When
+\code{TRUE}, possible API truncation is also an error.}
+
+\item{processar}{If \code{TRUE}, process the table after filtering.}
+
+\item{tipo}{Optional processor type, used mainly for PM2.5 tables.}
+
+\item{usar_cache}{If \code{TRUE}, reuse a local RJ-specific cache entry.}
+
+\item{snapshot}{If \code{TRUE}, attach a \code{vigiar_snapshot} attribute.}
+
+\item{...}{Additional arguments passed to \code{vigiar_baixar()}.}
 }
 \value{
-A tibble with RJ-only data.
+A tibble containing RJ-only data and RJ coverage attributes.
 }
 \description{
-Shortcut that downloads a table and filters for RJ municipalities.
+Downloads one VIGIAR table, filters Rio de Janeiro with the internal
+92-municipality registry, normalizes municipality codes, and attaches
+coverage and truncation metadata to the returned tibble.
 }

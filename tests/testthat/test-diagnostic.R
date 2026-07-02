@@ -2,7 +2,7 @@
 library(testthat)
 library(vigiar)
 
-# ── Helper data ───────────────────────────────────────────────────────────────
+# -- Helper data ---------------------------------------------------------------
 
 .make_pm25_data <- function(n_muni = 10, years = 2018:2022, with_issues = FALSE) {
   municipios <- c(330010, 330015, 330020, 330022, 330023,
@@ -55,7 +55,7 @@ library(vigiar)
   tibble::as_tibble(do.call(rbind, rows))
 }
 
-# ── Diagnostic construction ───────────────────────────────────────────────────
+# -- Diagnostic construction ---------------------------------------------------
 
 test_that("new_vigiar_diagnostic creates proper structure", {
   dados <- data.frame(x = 1:3)
@@ -95,7 +95,7 @@ test_that("vigiar_diagnosticar_serie errors on missing columns", {
   expect_equal(diag$severidade, "critico")
 })
 
-# ── Individual checks ─────────────────────────────────────────────────────────
+# -- Individual checks ---------------------------------------------------------
 
 test_that("vigiar_checar_ibge detects invalid codes", {
   dados <- data.frame(cod_municipio = c(355030L, 999999L, 110001L))
@@ -156,6 +156,38 @@ test_that("vigiar_checar_pm25 detects implausible values", {
   expect_true(any(critico_msgs))
 })
 
+test_that("vigiar_checar_pm25 detects suspicious zero values", {
+  dados <- data.frame(pm25 = c(0, 0, 0, 12, 15, 18))
+  diag <- new_vigiar_diagnostic("test", dados)
+  diag <- vigiar_checar_pm25(diag, dados, "pm25")
+  msgs <- vapply(diag$resultados, `[[`, "", "mensagem")
+  expect_equal(diag$metricas$pm25_pct_zero, 50)
+  expect_true(any(grepl("zero", msgs)))
+  expect_true(any(vapply(diag$resultados, function(x) x$severidade == "problema", logical(1))))
+})
+
+test_that("vigiar_checar_blocos_pm25_ausentes detects long missing blocks", {
+  dados <- data.frame(
+    cod_municipio = rep(330100L, 7),
+    ano = rep(2022L, 7),
+    mes = 1:7,
+    pm25 = c(rep(NA_real_, 6), 14)
+  )
+  diag <- new_vigiar_diagnostic("test", dados)
+  diag <- vigiar_checar_blocos_pm25_ausentes(
+    diag,
+    dados,
+    col_muni = "cod_municipio",
+    col_ano = "ano",
+    col_mes = "mes",
+    col_pm25 = "pm25"
+  )
+  msgs <- vapply(diag$resultados, `[[`, "", "mensagem")
+  expect_equal(diag$metricas$pm25_maior_bloco_ausente, 6)
+  expect_equal(diag$metricas$pm25_municipios_blocos_ausentes, "330100")
+  expect_true(any(grepl("long missing blocks", msgs)))
+})
+
 test_that("vigiar_checar_duplicatas finds duplicates", {
   dados <- data.frame(
     cod_municipio = c(1L, 1L, 2L),
@@ -204,7 +236,7 @@ test_that("vigiar_classificar_alertas returns ok when no issues", {
   expect_equal(diag$severidade, "ok")
 })
 
-# ── S3 methods ────────────────────────────────────────────────────────────────
+# -- S3 methods ----------------------------------------------------------------
 
 test_that("print.vigiar_diagnostic works without error", {
   dados <- data.frame(x = 1:3)
@@ -226,7 +258,7 @@ test_that("vigiar_relatorio_diagnostico works without error", {
   expect_no_error(vigiar_relatorio_diagnostico(diag))
 })
 
-# ── Edge cases ────────────────────────────────────────────────────────────────
+# -- Edge cases ----------------------------------------------------------------
 
 test_that("vigiar_diagnosticar_serie handles empty data", {
   dados <- data.frame(
@@ -269,14 +301,14 @@ test_that("diagnostic functions dont break with extra columns", {
   expect_s3_class(diag, "vigiar_diagnostic")
 })
 
-test_that("error messages are in Portuguese", {
+test_that("missing-column diagnostic message is clear", {
   dados <- data.frame(x = 1:3)
   diag <- vigiar_diagnosticar_serie(dados)
   msgs <- vapply(diag$resultados, `[[`, "", "mensagem")
-  expect_true(any(grepl("encontrada", msgs)))
+  expect_true(any(grepl("not found|nao encontrada|nao encontrado", msgs)))
 })
 
-# ── Scope parameter ───────────────────────────────────────────────────────────
+# -- Scope parameter -----------------------------------------------------------
 
 test_that("vigiar_diagnosticar_serie respects escopo = nacional", {
   dados <- data.frame(

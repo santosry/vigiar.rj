@@ -7,9 +7,11 @@
 vigiar_rj_municipios()
 }
 \value{
-A data.frame with columns: codigo_ibge, municipio,
-  macrorregiao_saude, regiao_saude.
+A tibble with municipality codes, municipality names, health
+  macro-regions, and health regions.
 }
 \description{
-List all 92 Rio de Janeiro municipalities
+The package standard is the 6-digit IBGE municipality code
+(`codigo_ibge` / `codigo_ibge_6`). The 7-digit official IBGE code is also
+returned as `codigo_ibge_7` for joins with sources that use the check digit.
 }

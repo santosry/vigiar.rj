@@ -15,6 +15,7 @@ vigiar_validar_ibge(dados, col_codigo = "cod_municipio")
 The data frame (unchanged), with a warning on invalid codes.
 }
 \description{
-Checks that municipality codes are 6- or 7-digit integers
-within the valid Brazilian range (110001-530010).
+Checks that municipality codes can be safely normalized to the package
+standard 6-digit IBGE municipality code. Seven-digit IBGE codes are accepted
+and normalized by removing the check digit.
 }

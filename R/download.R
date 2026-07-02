@@ -94,9 +94,9 @@ vigiar_baixar <- function(tabela, colunas = NULL, ordenar_por = NULL,
       col_muni <- intersect(c("muni", "cod_municipio", "ID_MUNI", "codigo_ibge", "MUN_COD"), names(dados))[1]
       if (!is.na(col_muni) && toupper(uf) == "RJ") {
         n_antes <- nrow(dados)
-        dados <- dados[as.integer(dados[[col_muni]]) >= 330010 &
-                       as.integer(dados[[col_muni]]) <= 330620, ]
-        cli::cli_alert_info("Filtro RJ (IBGE range via '{col_muni}'): {nrow(dados)} linhas (de {n_antes}).")
+        codigos <- .vigiar_normalizar_codigo_municipio(dados[[col_muni]])
+        dados <- dados[!is.na(codigos) & codigos %in% RJ_MUNICIPIOS$codigo_ibge_6, ]
+        cli::cli_alert_info("Filtro RJ (municipality registry via '{col_muni}'): {nrow(dados)} linhas (de {n_antes}).")
       }
     }
   }

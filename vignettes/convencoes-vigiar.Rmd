@@ -1,85 +1,71 @@
 ---
-title: "Convencoes VIGIAR - Padronizacao de Variaveis"
+title: "VIGIAR Conventions"
 author: "Ryan Santos"
 date: "2026-06-20"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Convencoes VIGIAR - Padronizacao de Variaveis}
+  %\VignetteIndexEntry{VIGIAR Conventions}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include=FALSE}
+```{r, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-## Introducao
+## Principles
 
-Seguindo o modelo das convencoes do `microdatasus`, este documento
-define as convencoes de nomenclatura, unidades e padronizacao adotadas
-pelo pacote `vigiar`.
+`vigiar` standardizes raw VIGIAR data into stable R-friendly structures:
 
-## Principios
+1. Column names use `snake_case`.
+2. Municipality codes use the 6-digit IBGE code internally.
+3. The RJ registry also stores the official 7-digit IBGE code.
+4. Processed objects preserve source metadata.
+5. Validation functions warn or diagnose; they do not silently repair science.
 
-1. **Nomes em portugues**: todas as colunas padronizadas usam
-   snake_case em portugues (ex: `cod_municipio`, `pm25_media_anual`).
-2. **Tipos consistentes**: codigos sao `integer`, coordenadas sao
-   `numeric`, datas sao `integer` (ano, mes).
-3. **Metadados preservados**: cada tibble carrega atributos com
-   a tabela de origem, data de processamento e processador usado.
-4. **Validacao sem modificacao**: funcoes `vigiar_validar_*()`
-   emitem warnings mas nunca alteram os dados.
+## Municipality Codes
 
-## Convencoes por Dominio
+The package standard is the 6-digit IBGE municipality code. Examples:
 
-### PM2.5 (Qualidade do Ar)
+| Input | Internal code |
+| --- | --- |
+| `330455` | `330455` |
+| `3304557` | `330455` |
+| `" 330455 "` | `330455` |
 
-| Original | Padronizado | Tipo | Unidade |
-|----------|-------------|------|---------|
-| `muni`, `ID_MUNI` | `cod_municipio` | integer | - |
-| `UF` | `sigla_uf` | character | - |
+Values with non-numeric characters or unsafe lengths become `NA`.
+
+## PM2.5 Columns
+
+| Raw name | Standard name | Type | Unit |
+| --- | --- | --- | --- |
+| `muni`, `ID_MUNI` | `cod_municipio` | integer | 6-digit IBGE code |
+| `UF` | `sigla_uf` | character | state abbreviation |
 | `Media_pm25` | `pm25_media_anual` | numeric | ug/m3 |
 | `pm25` | `pm25_media` | numeric | ug/m3 |
 | `t_dias` | `pm25_media_periodo` | numeric | ug/m3 |
-| `n_dias` | `n_dias_criticos` | integer | dias |
-| `n_dias_conama` | `n_dias_criticos_conama` | integer | dias |
-| `LAT` | `latitude` | numeric | graus decimais |
-| `LON` | `longitude` | numeric | graus decimais |
-| `Categoria_pm25` | `categoria_oms` | character | - |
-| `Categoria_pm25_conama` | `categoria_conama` | character | - |
+| `n_dias` | `n_dias_criticos` | integer | days |
+| `n_dias_conama` | `n_dias_criticos_conama` | integer | days |
+| `LAT`, `LON` | `latitude`, `longitude` | numeric | decimal degrees |
+| `Categoria_pm25` | `categoria_oms` | character | category |
+| `Categoria_pm25_conama` | `categoria_conama` | character | category |
 
-### Indicadores de Saude
+## Health Indicator Columns
 
-| Original | Padronizado | Tipo | Unidade |
-|----------|-------------|------|---------|
-| `Indicador` | `indicador` | character | - |
-| `n` | `populacao_exposta` | numeric | habitantes |
-| `est` | `estimativa` | numeric | varia |
-| `low` | `ic_inferior` | numeric | varia |
-| `high` | `ic_superior` | numeric | varia |
-| `desfecho` | `desfecho` | character | - |
-| `q1`, `q2`, `q3` | `quartil_1`, `quartil_2`, `quartil_3` | numeric | varia |
+| Raw name | Standard name | Type |
+| --- | --- | --- |
+| `Indicador` | `indicador` | character |
+| `n` | `populacao_exposta` | numeric |
+| `est` | `estimativa` | numeric |
+| `low` | `ic_inferior` | numeric |
+| `high` | `ic_superior` | numeric |
+| `desfecho` | `desfecho` | character |
+| `q1`, `q2`, `q3` | `quartil_1`, `quartil_2`, `quartil_3` | numeric |
 
-### Exposicao Indoor
+## Scientific Limits
 
-| Original | Padronizado | Tipo | Unidade |
-|----------|-------------|------|---------|
-| `Code` | `cod_uf` | integer | - |
-| `Ano` | `ano` | integer | - |
-| `comb_sol` | `prop_combustiveis_solidos` | numeric | proporcao |
-| `percent_comb` | `percentual_combustiveis` | numeric | % |
-| `pop_exposta` | `populacao_exposta` | numeric | habitantes |
-
-## Codigos IBGE
-
-- Municipios: 6 ou 7 digitos, intervalo 110001-530010
-- UF: 2 digitos, intervalo 11-53
-- Validacao: `vigiar_validar_ibge()` emite warning para codigos fora do intervalo
-
-## Limitacoes
-
-- Os dados sao agregados por municipio/ano. Nao ha dados individuais.
-- PM2.5 e estimado por satelite/modelagem, nao medido em superficie.
-- Populacao exposta usa projecoes do IBGE, nao contagem direta.
-- Indicadores de saude sao estimativas epidemiologicas com IC 95%.
-- A unidade geografica e o municipio de residencia, nao de exposicao.
+- VIGIAR data are aggregated by geography and time.
+- PM2.5 may be estimated or modelled rather than directly measured.
+- Population exposure uses demographic projections or aggregate estimates.
+- Health indicators are epidemiologic estimates with uncertainty.
+- Municipality of residence and municipality of exposure may differ.

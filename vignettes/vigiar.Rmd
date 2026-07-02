@@ -1,10 +1,10 @@
 ---
-title: "Introducao ao pacote vigiar"
+title: "Introduction to vigiar"
 author: "Ryan Santos"
 date: "2026-06-20"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introducao ao pacote vigiar}
+  %\VignetteIndexEntry{Introduction to vigiar}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,155 +17,90 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Visao Geral
+## Overview
 
-O pacote `vigiar` permite baixar todos os dados do dashboard VIGIAR
-(Vigilancia em Saude Ambiental) do Ministerio da Saude, hospedado no
-Power BI, diretamente para o R.
+`vigiar` downloads, processes, validates, and documents data from the public
+VIGIAR Power BI dashboard maintained by Brazil's Ministry of Health. The package
+focuses first on PM2.5 and the 92 municipalities of Rio de Janeiro state.
 
-O VIGIAR disponibiliza:
+VIGIAR publishes data on:
 
-- Concentracao de PM2.5 por municipio (series anuais e mensais)
-- Dias acima dos limites da OMS e CONAMA
-- Populacao exposta por faixa de concentracao
-- Indicadores de saude: fracao atribuivel, internacoes
-- Exposicao indoor a combustiveis solidos
+- PM2.5 concentration by municipality and time period;
+- days above WHO and CONAMA PM2.5 references;
+- population exposure categories;
+- aggregate health indicators and attributable fractions;
+- indoor solid-fuel exposure indicators.
 
-## Instalacao
+The package is designed for reproducible epidemiologic data work. It checks
+schema assumptions, municipality codes, RJ coverage, possible API truncation,
+and scientific limitations before analysis.
+
+## Installation
 
 ```r
 # install.packages("remotes")
 remotes::install_github("santosry/vigiar")
 ```
 
-## Primeiros Passos
-
-### Conectar ao dashboard
+## Connecting
 
 ```r
 library(vigiar)
 
-# Estabelece sessao e carrega o esquema de dados
 vigiar_conectar()
-#> Sessao pronta! 32 tabelas disponiveis.
-```
-
-A conexao e necessaria apenas uma vez por sessao R. O pacote obtem
-cookies e tokens diretamente da pagina publica do Power BI; nao e
-preciso login.
-
-### Explorar tabelas disponiveis
-
-```r
-# Listar todas as tabelas
 vigiar_tabelas()
-
-# Ver estrutura de uma tabela especifica
 vigiar_esquema("df_anual")
 ```
 
-### Baixar dados
+The connection reads public Power BI metadata and does not require login.
+
+## Downloading RJ Data
+
+Use the RJ-specific downloader when the intended scope is Rio de Janeiro:
 
 ```r
-# Baixar uma tabela
-df_anual <- vigiar_baixar("df_anual")
-head(df_anual)
-
-# Baixar apenas algumas colunas
-df_mensal <- vigiar_baixar("df_mensal",
-  colunas = c("ano", "mes", "UF", "Municipio", "pm25"))
-
-# Baixar as tabelas principais de uma vez
-tudo <- vigiar_baixar_principais()
+pm25_rj <- vigiar_baixar_rj("df_anual", validar_cobertura = TRUE)
+vigiar_rj_cobertura(pm25_rj)
+vigiar_rj_municipios_ausentes(pm25_rj)
 ```
 
-## Exemplos de Analise
-
-### Tendencia de PM2.5 por regiao
+When all 92 municipalities are required:
 
 ```r
-library(dplyr)
-library(ggplot2)
-
-vigiar_conectar()
-df <- vigiar_baixar("df_anual")
-
-# Juntar com cadastro de municipios para obter regiao
-muni <- vigiar_baixar("df_muni",
-  colunas = c("UF_COD", "REGIAO"))
-
-df <- df |>
-  left_join(muni, by = c("muni" = "UF_COD"))
-
-# Media por regiao e ano
-df |>
-  group_by(REGIAO, ano) |>
-  summarise(pm25 = mean(Media_pm25, na.rm = TRUE), .groups = "drop") |>
-  ggplot(aes(ano, pm25, color = REGIAO)) +
-  geom_line(linewidth = 1) +
-  labs(title = "PM2.5 medio por regiao do Brasil",
-       x = "Ano",
-       y = "PM2.5 (ug/m3)") +
-  theme_minimal()
+pm25_rj <- vigiar_baixar_rj(
+  "df_anual",
+  validar_cobertura = TRUE,
+  exigir_completo = TRUE
+)
 ```
 
-### Populacao exposta a niveis elevados de PM2.5
+`exigir_completo = TRUE` fails loudly if any expected RJ municipality is absent.
+This is useful for research workflows that require a complete municipal panel.
+
+## Processing
 
 ```r
-pop <- vigiar_baixar("pop")
+pm25 <- process_pm25(pm25_rj, tipo = "anual")
 
-# Filtrar categoria de exposicao alta
-pop |>
-  filter(categoria == "> 25 ug/m3") |>
-  group_by(ano) |>
-  summarise(pop_exposta = sum(pop, na.rm = TRUE) / 1e6) |>
-  ggplot(aes(ano, pop_exposta)) +
-  geom_col(fill = "tomato") +
-  labs(title = "Populacao exposta a PM2.5 > 25 ug/m3",
-       x = "Ano", y = "Milhoes de habitantes")
+diag <- vigiar_diagnosticar_serie(pm25, escopo = "rj")
+vigiar_relatorio_diagnostico(diag)
 ```
 
-### Dias criticos por municipio
+The PM2.5 processor standardizes column names, normalizes municipality codes to
+the 6-digit IBGE standard, validates dates and units, and returns a typed
+`vigiar_pm25` tibble.
 
-```r
-dias <- vigiar_baixar("df_dias")
+## Responsible Use
 
-# Municipios com mais dias criticos no ultimo ano
-dias |>
-  filter(ano == max(ano)) |>
-  group_by(ID_MUNI) |>
-  summarise(total_dias = sum(n_dias, na.rm = TRUE)) |>
-  slice_max(total_dias, n = 20)
-```
+VIGIAR data are public and aggregated. PM2.5 may be estimated or modelled, and
+coverage can vary by table, year, month, and source availability. A dataset can
+be available without being complete for RJ.
 
-## Tabelas de Indicadores de Saude
+Always inspect coverage before making municipality, macro-region, or temporal
+claims.
 
-As tabelas `tb_brasil`, `tb_uf`, `tb_muni` e `tb_fracao` contem
-indicadores epidemiologicos:
-
-```r
-tb_brasil <- vigiar_baixar("tb_brasil")
-
-# A coluna 'Indicador' contem o nome do indicador
-# Ex: "Internacoes por doencas respiratorias"
-unique(tb_brasil$Indicador)
-
-# 'est' e a estimativa pontual, 'low' e 'high' sao IC 95%
-tb_brasil |>
-  filter(Indicador == "Fracao atribuivel (%)")
-```
-
-## Encerrando a Sessao
+## Closing the Session
 
 ```r
 vigiar_desconectar()
 ```
-
-## Solucao de Problemas
-
-| Problema | Solucao |
-|----------|---------|
-| Sessao expirou | `vigiar_conectar(atualizar = TRUE)` |
-| Timeout | Aumente o timeout: `vigiar_conectar(timeout = 60)` |
-| Erro 403 | O dashboard pode estar temporariamente indisponivel |
-| Tabela vazia | Algumas tabelas sao auxiliares e nao tem dados |

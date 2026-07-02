@@ -39,8 +39,9 @@ vigiar_padronizar_colunas <- function(dados, tabela) {
 
 #' Validate IBGE municipality codes
 #'
-#' Checks that municipality codes are 6- or 7-digit integers
-#' within the valid Brazilian range (110001-530010).
+#' Checks that municipality codes can be safely normalized to the package
+#' standard 6-digit IBGE municipality code. Seven-digit IBGE codes are accepted
+#' and normalized by removing the check digit.
 #'
 #' @param dados A data frame.
 #' @param col_codigo Name of the column containing IBGE codes.
@@ -49,13 +50,12 @@ vigiar_padronizar_colunas <- function(dados, tabela) {
 vigiar_validar_ibge <- function(dados, col_codigo = "cod_municipio") {
   if (!col_codigo %in% names(dados)) return(dados)
 
-  codigos <- dados[[col_codigo]]
-  codigos <- as.integer(codigos)
+  codigos <- .vigiar_normalizar_codigo_municipio(dados[[col_codigo]])
 
-  n_invalid <- sum(is.na(codigos) | codigos < 110001 | codigos > 530010)
+  n_invalid <- sum(is.na(codigos))
   if (n_invalid > 0) {
     warning(sprintf(
-      "%d codigo(s) IBGE fora do intervalo esperado (110001-530010)",
+      "%d IBGE municipality code(s) could not be safely normalized to 6 digits",
       n_invalid
     ))
   }

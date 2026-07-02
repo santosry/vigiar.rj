@@ -1,6 +1,7 @@
 ^vigiar.*\.Rproj$
 ^\.Rproj\.user$
 ^README\.Rmd$
+^README\.html$
 ^\.git$
 ^\.github$
 ^data-raw$

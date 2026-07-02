@@ -93,7 +93,7 @@ process_pm25 <- function(dados, tipo = c("anual", "mensal", "dias", "dias_conama
 
   # -- Type conversion -----------------------------------------------------
   if ("cod_municipio" %in% names(dados)) {
-    dados$cod_municipio <- as.integer(dados$cod_municipio)
+    dados$cod_municipio <- .vigiar_normalizar_codigo_municipio(dados$cod_municipio)
   }
   if ("ano" %in% names(dados)) {
     dados$ano <- as.integer(dados$ano)
@@ -163,7 +163,7 @@ process_populacao_exposta <- function(dados, ...) {
   }
 
   if ("cod_municipio" %in% names(dados)) {
-    dados$cod_municipio <- as.integer(dados$cod_municipio)
+    dados$cod_municipio <- .vigiar_normalizar_codigo_municipio(dados$cod_municipio)
   }
   if ("ano" %in% names(dados)) {
     dados$ano <- as.integer(dados$ano)
@@ -237,6 +237,7 @@ process_indicadores_saude <- function(dados,
   }
 
   if ("cod_municipio" %in% names(dados)) {
+    dados$cod_municipio <- .vigiar_normalizar_codigo_municipio(dados$cod_municipio)
     dados <- vigiar_validar_ibge(dados, col_codigo = "cod_municipio")
   }
 
@@ -405,7 +406,7 @@ process_municipios <- function(dados, ...) {
   }
 
   if ("cod_municipio" %in% names(dados)) {
-    dados$cod_municipio <- as.integer(dados$cod_municipio)
+    dados$cod_municipio <- .vigiar_normalizar_codigo_municipio(dados$cod_municipio)
   }
   if ("cod_uf" %in% names(dados)) {
     dados$cod_uf <- as.integer(dados$cod_uf)

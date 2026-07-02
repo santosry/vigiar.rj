@@ -17,19 +17,21 @@ navbar:
       text: Articles
       menu:
       - text: "Getting Started"
-      - text: "Introducao ao VIGIAR"
+      - text: "Introduction to VIGIAR"
         href: articles/vigiar.html
-      - text: "Fluxo Download -> Processamento"
+      - text: "Download and Processing Flow"
         href: articles/fluxo-download-processamento.html
+      - text: "Complete RJ Download"
+        href: articles/rj-download-completo.html
       - text: "-------"
       - text: "Data Dictionary"
-      - text: "Dicionario de Variaveis"
+      - text: "Variable Dictionary"
         href: articles/variaveis-vigiar.html
-      - text: "Convencoes VIGIAR"
+      - text: "VIGIAR Conventions"
         href: articles/convencoes-vigiar.html
       - text: "-------"
       - text: "Exploratory Analysis"
-      - text: "Uso Responsavel dos Dados"
+      - text: "Responsible Data Use"
         href: articles/uso-responsavel-dados.html
     news:
       text: News
@@ -52,6 +54,8 @@ reference:
   - vigiar_baixar_tudo
   - vigiar_baixar_principais
   - vigiar_baixar_rj
+  - vigiar_baixar_rj_completo
+  - vigiar_baixar_municipio
 - title: Processing
   contents:
   - process_vigiar
@@ -76,6 +80,7 @@ reference:
   - vigiar_checar_cobertura_temporal
   - vigiar_checar_cobertura_espacial
   - vigiar_checar_pm25
+  - vigiar_checar_blocos_pm25_ausentes
   - vigiar_checar_ibge
   - vigiar_checar_duplicatas
   - vigiar_checar_quebra_serie
@@ -106,6 +111,10 @@ reference:
   - vigiar_rj_resumo
   - vigiar_rj_series
   - vigiar_validar_rj
+  - vigiar_rj_cobertura
+  - vigiar_rj_completude_tabela
+  - vigiar_rj_municipios_ausentes
+  - vigiar_plot_pm25_rj
 - title: Audit & Compliance
   contents:
   - vigiar_auditar
@@ -140,6 +149,7 @@ reference:
   - vigiar_esquema_lock
   - vigiar_esquema_carregar_lock
   - vigiar_esquema_verificar
+  - vigiar_esquema_verificar_critico
 - title: Export
   contents:
   - vigiar_exportar_csv

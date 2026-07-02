@@ -19,6 +19,7 @@ revdep/
 *~
 .DS_Store
 Thumbs.db
+README.html
 
 # Vignettes
 inst/doc/*
@@ -42,3 +43,6 @@ renv/staging/
 docs/
 _site/
 pkgdown/
+
+# Local manual validation reports
+data-raw/rj-download-completeness-output/

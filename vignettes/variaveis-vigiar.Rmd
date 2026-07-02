@@ -1,10 +1,10 @@
 ---
-title: "Variaveis VIGIAR - Dicionario de Dados"
+title: "VIGIAR Variable Dictionary"
 author: "Ryan Santos"
 date: "2026-06-20"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Variaveis VIGIAR - Dicionario de Dados}
+  %\VignetteIndexEntry{VIGIAR Variable Dictionary}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,76 +17,66 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Dicionario de Variaveis
+## Dictionary
 
-O pacote `vigiar` mantem um dicionario completo de todas as variaveis
-disponiveis no dashboard VIGIAR. O dicionario documenta:
+`vigiar` includes a package dictionary describing expected VIGIAR variables:
 
-- **Nome original** da variavel no Power BI
-- **Nome padronizado** usado pelo pacote apos processamento
-- **Tipo de dado** (raw e processado)
-- **Descricao** do conteudo
-- **Unidade** de medida
-- **Valores aceitos** e intervalos plausiveis
+- original Power BI column name;
+- standardized package column name;
+- raw and processed type;
+- description;
+- unit;
+- accepted values or plausible ranges;
+- validation rule;
+- notes.
 
-```{r}
+```r
 library(vigiar)
 
-# Carregar o dicionario completo
 dict <- vigiar_dicionario()
 head(dict)
 ```
 
-## Estrutura do Dicionario
+## Structure
 
-```{r}
+```r
 names(dict)
 ```
 
-- `table_id` - nome da tabela no Power BI
-- `table_name` - descricao da tabela
-- `category` - categoria tematica
-- `original_name` - nome da coluna no banco original
-- `standard_name` - nome padronizado pelo pacote
-- `type_raw` - tipo original (Power BI)
-- `type_processed` - tipo apos processamento (R)
-- `description` - descricao da variavel
-- `unit` - unidade de medida
-- `allowed_values` - dominio de valores aceitos
-- `example` - exemplo de valor
-- `validation_rule` - regra de validacao
-- `notes` - observacoes adicionais
+Important columns include:
 
-## Variaveis por Dominio
+- `table_id`;
+- `table_name`;
+- `category`;
+- `original_name`;
+- `standard_name`;
+- `type_raw`;
+- `type_processed`;
+- `description`;
+- `unit`;
+- `allowed_values`;
+- `validation_rule`;
+- `notes`.
 
-### PM2.5 (Qualidade do Ar)
+## Domains
 
-```{r}
+```r
 vigiar_variaveis("pm25")
-```
-
-### Populacao Exposta
-
-```{r}
 vigiar_variaveis("populacao_exposta")
-```
-
-### Indicadores de Saude
-
-```{r}
 vigiar_variaveis("indicadores_saude")
+vigiar_variaveis("municipios")
 ```
 
-## Consultar uma Variavel Especifica
+## Specific Variables
 
-```{r}
+```r
 vigiar_descrever_variavel("pm25", "pm25_media_anual")
 vigiar_descrever_variavel("indicadores_saude", "estimativa")
 ```
 
-## Schema de um Dominio
+## Schema Views
 
-```{r}
+```r
 vigiar_schema("pm25")
 vigiar_schema("exposicao_indoor")
 ```
