@@ -458,9 +458,10 @@ vigiar_esquema_carregar_lock <- function(caminho = "vigiar_schema_lock.json") {
 #' Compares the live schema against a lock file and reports differences.
 #'
 #' @param lock_path Path to lock file, or a \code{vigiar_schema_lock} object.
+#' @param error If \code{TRUE}, error when differences are found.
 #' @return Invisibly, a list of differences (empty if identical).
 #' @export
-vigiar_esquema_verificar <- function(lock_path = "vigiar_schema_lock.json") {
+vigiar_esquema_verificar <- function(lock_path = "vigiar_schema_lock.json", error = FALSE) {
   if (is.null(.vigiar_env$esquema)) {
     stop("Nenhuma sessao ativa. Execute vigiar_conectar() primeiro.")
   }
@@ -498,6 +499,7 @@ vigiar_esquema_verificar <- function(lock_path = "vigiar_schema_lock.json") {
   # Column changes in common tables
   common <- intersect(live_tables, locked_tables)
   col_changes <- list()
+  type_changes <- list()
 
   for (tab in common) {
     live_cols <- names(.vigiar_env$esquema[[tab]])
@@ -508,6 +510,20 @@ vigiar_esquema_verificar <- function(lock_path = "vigiar_schema_lock.json") {
 
     if (length(added) > 0 || length(removed) > 0) {
       col_changes[[tab]] <- list(added = added, removed = removed)
+    }
+
+    shared <- intersect(live_cols, lock_cols)
+    changed <- lapply(shared, function(col) {
+      live_type <- .vigiar_schema_column_type(.vigiar_env$esquema[[tab]][[col]])
+      lock_type <- .vigiar_schema_column_type(lock$esquema[[tab]][[col]])
+      if (is.na(live_type) || is.na(lock_type) || identical(live_type, lock_type)) {
+        return(NULL)
+      }
+      list(column = col, live = live_type, locked = lock_type)
+    })
+    changed <- changed[!vapply(changed, is.null, logical(1))]
+    if (length(changed) > 0) {
+      type_changes[[tab]] <- changed
     }
   }
 
@@ -525,11 +541,124 @@ vigiar_esquema_verificar <- function(lock_path = "vigiar_schema_lock.json") {
     diffs$col_changes <- col_changes
   }
 
+  if (length(type_changes) > 0) {
+    cli::cli_alert_warning("Mudancas de tipo em {length(type_changes)} tabela(s):")
+    for (tab in names(type_changes)) {
+      for (change in type_changes[[tab]]) {
+        cli::cli_text(
+          "  {tab}.{change$column}: {change$locked} -> {change$live}"
+        )
+      }
+    }
+    diffs$type_changes <- type_changes
+  }
+
   if (length(diffs) == 0) {
     cli::cli_alert_success("Schema identico ao lock. Reproducibilidade garantida!")
   } else {
     cli::cli_alert_danger("Schema MUDOU. Reproducibilidade comprometida.")
+    if (isTRUE(error)) {
+      stop("Schema changed relative to lock.", call. = FALSE)
+    }
   }
 
   invisible(diffs)
+}
+
+#' Verify critical VIGIAR schema columns
+#'
+#' Checks only the table and column subset required for RJ PM2.5, municipality,
+#' coordinate, and population workflows. Extra live tables or columns are
+#' ignored; missing critical columns or type changes are failures.
+#'
+#' @param lock_path Critical schema lock path. Defaults to the package lock.
+#' @param error If \code{TRUE}, error when critical differences are found.
+#' @return Invisibly, a list of critical schema differences.
+#' @export
+vigiar_esquema_verificar_critico <- function(lock_path = NULL, error = TRUE) {
+  if (is.null(.vigiar_env$esquema)) {
+    stop("Nenhuma sessao ativa. Execute vigiar_conectar() primeiro.")
+  }
+
+  if (is.null(lock_path)) {
+    lock_path <- system.file(
+      "extdata", "vigiar_schema_critical_lock.json", package = "vigiar"
+    )
+    if (!nzchar(lock_path)) {
+      stop("Critical schema lock not found in package extdata.", call. = FALSE)
+    }
+  }
+
+  lock <- if (is.character(lock_path)) {
+    if (length(lock_path) != 1 || !nzchar(lock_path)) {
+      stop("Critical schema lock path must identify one file.", call. = FALSE)
+    }
+    vigiar_esquema_carregar_lock(lock_path)
+  } else {
+    lock_path
+  }
+
+  diffs <- list()
+  missing_tables <- setdiff(lock$tabelas, names(.vigiar_env$esquema))
+  if (length(missing_tables) > 0) {
+    diffs$missing_tables <- missing_tables
+  }
+
+  missing_columns <- list()
+  type_changes <- list()
+  for (tab in intersect(lock$tabelas, names(.vigiar_env$esquema))) {
+    lock_cols <- names(lock$esquema[[tab]] %||% list())
+    live_cols <- names(.vigiar_env$esquema[[tab]])
+    removed <- setdiff(lock_cols, live_cols)
+    if (length(removed) > 0) {
+      missing_columns[[tab]] <- removed
+    }
+
+    shared <- intersect(lock_cols, live_cols)
+    changed <- lapply(shared, function(col) {
+      live_type <- .vigiar_schema_column_type(.vigiar_env$esquema[[tab]][[col]])
+      lock_type <- .vigiar_schema_column_type(lock$esquema[[tab]][[col]])
+      if (is.na(live_type) || is.na(lock_type) || identical(live_type, lock_type)) {
+        return(NULL)
+      }
+      list(column = col, live = live_type, locked = lock_type)
+    })
+    changed <- changed[!vapply(changed, is.null, logical(1))]
+    if (length(changed) > 0) {
+      type_changes[[tab]] <- changed
+    }
+  }
+
+  if (length(missing_columns) > 0) {
+    diffs$missing_columns <- missing_columns
+  }
+  if (length(type_changes) > 0) {
+    diffs$type_changes <- type_changes
+  }
+
+  if (length(diffs) == 0) {
+    cli::cli_alert_success("Critical VIGIAR schema columns match the lock.")
+  } else {
+    cli::cli_alert_danger("Critical VIGIAR schema changed.")
+    if (isTRUE(error)) {
+      stop("Critical schema changed relative to lock.", call. = FALSE)
+    }
+  }
+
+  invisible(diffs)
+}
+
+.vigiar_schema_column_type <- function(x) {
+  if (is.null(x)) {
+    return(NA_character_)
+  }
+  if (is.list(x)) {
+    out <- x$tipo %||% x$type %||% x$Type %||% x$T
+  } else {
+    out <- x
+  }
+  if (length(out) == 0 || is.null(out)) {
+    return(NA_character_)
+  }
+  as.character(out[[1]])
 }

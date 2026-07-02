@@ -14,6 +14,7 @@ vigiar_baixar_rj_completo(
   delay = 0.5,
   validar_cobertura = TRUE,
   exigir_completo = FALSE,
+  require_complete = exigir_completo,
   ...
 )
 }
@@ -36,6 +37,8 @@ vigiar_baixar_rj_completo(
 
 \item{exigir_completo}{If \code{TRUE}, error unless all expected RJ
 municipalities are present in the final result.}
+
+\item{require_complete}{English alias for \code{exigir_completo}.}
 
 \item{...}{Additional arguments passed to \code{vigiar_baixar_rj()}.}
 }

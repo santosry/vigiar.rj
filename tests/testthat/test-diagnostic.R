@@ -156,6 +156,38 @@ test_that("vigiar_checar_pm25 detects implausible values", {
   expect_true(any(critico_msgs))
 })
 
+test_that("vigiar_checar_pm25 detects suspicious zero values", {
+  dados <- data.frame(pm25 = c(0, 0, 0, 12, 15, 18))
+  diag <- new_vigiar_diagnostic("test", dados)
+  diag <- vigiar_checar_pm25(diag, dados, "pm25")
+  msgs <- vapply(diag$resultados, `[[`, "", "mensagem")
+  expect_equal(diag$metricas$pm25_pct_zero, 50)
+  expect_true(any(grepl("zero", msgs)))
+  expect_true(any(vapply(diag$resultados, function(x) x$severidade == "problema", logical(1))))
+})
+
+test_that("vigiar_checar_blocos_pm25_ausentes detects long missing blocks", {
+  dados <- data.frame(
+    cod_municipio = rep(330100L, 7),
+    ano = rep(2022L, 7),
+    mes = 1:7,
+    pm25 = c(rep(NA_real_, 6), 14)
+  )
+  diag <- new_vigiar_diagnostic("test", dados)
+  diag <- vigiar_checar_blocos_pm25_ausentes(
+    diag,
+    dados,
+    col_muni = "cod_municipio",
+    col_ano = "ano",
+    col_mes = "mes",
+    col_pm25 = "pm25"
+  )
+  msgs <- vapply(diag$resultados, `[[`, "", "mensagem")
+  expect_equal(diag$metricas$pm25_maior_bloco_ausente, 6)
+  expect_equal(diag$metricas$pm25_municipios_blocos_ausentes, "330100")
+  expect_true(any(grepl("long missing blocks", msgs)))
+})
+
 test_that("vigiar_checar_duplicatas finds duplicates", {
   dados <- data.frame(
     cod_municipio = c(1L, 1L, 2L),

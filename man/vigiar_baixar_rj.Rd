@@ -12,6 +12,7 @@ vigiar_baixar_rj(
   timeout = 120,
   validar_cobertura = TRUE,
   exigir_completo = FALSE,
+  require_complete = exigir_completo,
   processar = FALSE,
   tipo = NULL,
   usar_cache = FALSE,
@@ -34,6 +35,9 @@ vigiar_baixar_rj(
 
 \item{exigir_completo}{If \code{TRUE}, error unless all 92 municipalities
 are present.}
+
+\item{require_complete}{English alias for \code{exigir_completo}. When
+\code{TRUE}, possible API truncation is also an error.}
 
 \item{processar}{If \code{TRUE}, process the table after filtering.}
 

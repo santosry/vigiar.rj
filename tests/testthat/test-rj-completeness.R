@@ -46,6 +46,15 @@ library(vigiar)
       ano = list(nome = "ano", tipo = "integer"),
       Media_pm25 = list(nome = "Media_pm25", tipo = "numeric")
     ),
+    df_mensal = list(
+      muni = list(nome = "muni", tipo = "integer"),
+      UF = list(nome = "UF", tipo = "character"),
+      ano = list(nome = "ano", tipo = "integer"),
+      mes = list(nome = "mes", tipo = "integer"),
+      pm25 = list(nome = "pm25", tipo = "numeric"),
+      LAT = list(nome = "LAT", tipo = "numeric"),
+      LON = list(nome = "LON", tipo = "numeric")
+    ),
     tb_uf = list(
       UF = list(nome = "UF", tipo = "character"),
       ano = list(nome = "ano", tipo = "integer"),
@@ -68,6 +77,36 @@ test_that("RJ registry has the expected 92 municipalities", {
   expect_false(330033L %in% rj$codigo_ibge_6)
 })
 
+test_that("RJ registry matches the official IBGE municipality code reference", {
+  ref_path <- system.file("extdata", "rj_municipios_ibge_reference.csv", package = "vigiar")
+  ibge <- utils::read.csv(ref_path, stringsAsFactors = FALSE)
+  rj <- vigiar_rj_municipios()
+
+  expect_equal(nrow(ibge), 92)
+  expect_setequal(rj$codigo_ibge_6, ibge$codigo_ibge_6)
+  expect_setequal(rj$codigo_ibge_7, ibge$codigo_ibge_7)
+
+  merged <- merge(rj, ibge, by = c("codigo_ibge_6", "codigo_ibge_7"))
+  expect_equal(nrow(merged), 92)
+  expect_equal(merged$municipio[merged$codigo_ibge_6 == 330100], "Campos dos Goytacazes")
+  expect_equal(merged$codigo_ibge_7[merged$codigo_ibge_6 == 330100], 3301009)
+  expect_equal(merged$codigo_ibge_7[merged$codigo_ibge_6 == 330475], 3304755)
+  expect_equal(merged$codigo_ibge_7[merged$codigo_ibge_6 == 330500], 3305000)
+  expect_equal(length(unique(rj$macrorregiao_saude)), 9)
+})
+
+test_that("Campos dos Goytacazes is a sentinel RJ municipality", {
+  rj <- vigiar_rj_municipios()
+  campos <- rj[rj$codigo_ibge_6 == 330100, ]
+
+  expect_equal(nrow(campos), 1)
+  expect_equal(campos$codigo_ibge_7, 3301009)
+  expect_equal(campos$municipio, "Campos dos Goytacazes")
+  expect_equal(campos$macrorregiao_saude, "Norte")
+  expect_false(any(rj$municipio[rj$codigo_ibge_6 == 330100] %in%
+    c("Carapebus", "Cambuci", "Cardoso Moreira")))
+})
+
 test_that("municipality code normalization handles 6 and 7 digits safely", {
   expect_equal(.vigiar_normalizar_codigo_municipio(330455), 330455L)
   expect_equal(.vigiar_normalizar_codigo_municipio(3304557), 330455L)
@@ -84,6 +123,30 @@ test_that("municipality code normalization handles 6 and 7 digits safely", {
   expect_equal(.vigiar_normalizar_codigo_municipio(3550308), 355030L)
   expect_true(is.na(.vigiar_normalizar_codigo_municipio(9999999)))
   expect_true(is.na(.vigiar_normalizar_codigo_municipio("330455X")))
+})
+
+test_that("RJ table completeness uses expected table grains", {
+  annual <- rbind(
+    .make_rj_data(.rj_codes6(), years = 2020L),
+    .make_rj_data(.rj_codes6(10), years = 2021L)
+  )
+  cov_annual <- vigiar_rj_completude_tabela(annual, tabela = "df_anual")
+  expect_equal(unique(cov_annual$grade), "municipio x ano")
+  expect_equal(nrow(cov_annual), 2)
+  expect_true(cov_annual$completo[cov_annual$ano == 2020L])
+  expect_false(cov_annual$completo[cov_annual$ano == 2021L])
+
+  monthly <- .make_rj_data(.rj_codes6(), years = 2022L, months = 1:2)
+  monthly <- monthly[!(monthly$cod_municipio == .rj_codes6(1) & monthly$mes == 2L), ]
+  cov_monthly <- vigiar_rj_completude_tabela(monthly, tabela = "df_mensal")
+  expect_equal(unique(cov_monthly$grade), "municipio x ano x mes")
+  expect_equal(nrow(cov_monthly), 2)
+  expect_true(cov_monthly$completo[cov_monthly$mes == 1L])
+  expect_false(cov_monthly$completo[cov_monthly$mes == 2L])
+  expect_error(
+    vigiar_rj_completude_tabela(monthly, tabela = "df_mensal", require_complete = TRUE),
+    "incomplete"
+  )
 })
 
 test_that("RJ coverage detects full and partial municipality sets", {
@@ -233,6 +296,52 @@ test_that("RJ download handles non-municipal tables and possible truncation", {
       "Possible truncation"
     )
     expect_true(isTRUE(attr(out, "vigiar_possivel_truncamento")))
+    expect_error(
+      suppressWarnings(vigiar_baixar_rj("df_anual", require_complete = TRUE)),
+      "truncation"
+    )
+  })
+})
+
+test_that("municipality download filters only by IBGE code and keeps metadata", {
+  mixed <- tibble::tibble(
+    muni = c(3301009L, 3300936L, 3300902L, 3301157L, 3550308L),
+    UF = c("RJ", "RJ", "RJ", "RJ", "SP"),
+    ano = 2022L,
+    Media_pm25 = c(12, 13, 14, 15, 99)
+  )
+
+  .with_mock_vigiar_session({
+    testthat::local_mocked_bindings(
+      vigiar_baixar = function(...) mixed,
+      .package = "vigiar"
+    )
+    out <- suppressWarnings(vigiar_baixar_municipio("df_anual", codigo_ibge = 330100))
+
+    expect_equal(nrow(out), 1)
+    expect_equal(unique(out$codigo_ibge_6), 330100L)
+    expect_equal(attr(out, "vigiar_codigo_ibge_6"), 330100L)
+    expect_equal(attr(out, "vigiar_codigo_ibge_7"), 3301009L)
+    expect_equal(attr(out, "vigiar_municipio"), "Campos dos Goytacazes")
+    expect_equal(attr(out, "vigiar_macrorregiao_saude"), "Norte")
+    expect_false(any(out$codigo_ibge_6 %in% c(330093L, 330090L, 330115L)))
+  })
+
+  mixed_truncated <- mixed
+  attr(mixed_truncated, "vigiar_possivel_truncamento") <- TRUE
+  .with_mock_vigiar_session({
+    testthat::local_mocked_bindings(
+      vigiar_baixar = function(...) mixed_truncated,
+      .package = "vigiar"
+    )
+    expect_error(
+      suppressWarnings(vigiar_baixar_municipio(
+        "df_anual",
+        codigo_ibge = 330100,
+        require_complete = TRUE
+      )),
+      "truncation"
+    )
   })
 })
 

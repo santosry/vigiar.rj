@@ -106,6 +106,42 @@ pm25_years <- rbind(
 coverage_fun(pm25_years, por = "ano")
 ```
 
+## Table-Aware Completeness
+
+`vigiar_rj_completude_tabela()` applies the expected municipal grid for common
+VIGIAR tables. For `df_anual`, the expected grid is municipality by year. For
+`df_mensal`, the expected grid is municipality by year by month.
+
+```{r}
+if (exists("vigiar_rj_completude_tabela", mode = "function")) {
+  vigiar_rj_completude_tabela(pm25_years, tabela = "df_anual")
+}
+```
+
+When `require_complete = TRUE`, incomplete coverage or possible truncation is an
+error, not just a warning.
+
+```{r, eval = FALSE}
+vigiar_rj_completude_tabela(
+  pm25_years,
+  tabela = "df_anual",
+  require_complete = TRUE
+)
+```
+
+## Municipality-Specific Download
+
+Use `vigiar_baixar_municipio()` when the target is one municipality. It filters
+by normalized IBGE code, not by municipality name.
+
+```{r, eval = FALSE}
+campos <- vigiar_baixar_municipio("df_anual", codigo_ibge = 330100)
+
+attr(campos, "vigiar_codigo_ibge_6")
+attr(campos, "vigiar_codigo_ibge_7")
+attr(campos, "vigiar_municipio")
+```
+
 ## Online Download Example
 
 The following code is intentionally not evaluated during vignette builds.
@@ -119,7 +155,7 @@ vigiar_rj_cobertura(pm25_rj)
 pm25_rj_complete <- vigiar_baixar_rj(
   "df_anual",
   validar_cobertura = TRUE,
-  exigir_completo = TRUE
+  require_complete = TRUE
 )
 
 vigiar_desconectar()
@@ -142,4 +178,6 @@ coverage_fun(pm25_partial)
 Coverage tells you whether the expected municipalities appear in the downloaded
 table. It does not prove that PM2.5 is measured at the ground, that the data are
 fit for causal inference, or that the time series is sufficient for modelling.
-Treat coverage as a necessary diagnostic, not as a scientific conclusion.
+The package does not implement GAM, DLNM, relative-risk, machine-learning, or
+causal inference models. Treat coverage as a necessary diagnostic, not as a
+scientific conclusion.

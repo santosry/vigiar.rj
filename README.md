@@ -54,7 +54,7 @@ vigiar_salvar_snapshot(snap, "pm25_rj_snapshot.rds")
 vigiar_desconectar()
 ```
 
-## Baixar dados dos municipios do Rio de Janeiro
+## Downloading Rio de Janeiro Municipality Data
 
 Use `vigiar_baixar_rj()` when the analysis scope is Rio de Janeiro. It
 downloads the requested VIGIAR table, filters against the internal
@@ -84,14 +84,16 @@ vigiar_desconectar()
 ```
 
 When the research question requires all 92 municipalities, set
-`exigir_completo = TRUE`. The function stops with a clear error if any
-expected RJ municipality is absent.
+`exigir_completo = TRUE` or `require_complete = TRUE`. The function
+stops with a clear error if any expected RJ municipality is absent or if
+possible API truncation prevents the package from guaranteeing
+completeness.
 
 ``` r
 pm25_rj <- vigiar_baixar_rj(
   "df_anual",
   validar_cobertura = TRUE,
-  exigir_completo = TRUE
+  require_complete = TRUE
 )
 ```
 
@@ -127,6 +129,19 @@ The internal normalizer accepts integer, numeric, and character inputs
 such as `330455`, `3304557`, `"330455"`, and `" 330455 "`. Values that
 cannot be safely normalized return `NA`.
 
+For municipality-specific work, prefer code-based downloads instead of
+filtering by municipality name. This avoids fragile joins caused by
+spelling, accents, or source-specific name variants.
+
+``` r
+campos <- vigiar_baixar_municipio("df_anual", codigo_ibge = 330100)
+
+attr(campos, "vigiar_codigo_ibge_6")
+attr(campos, "vigiar_codigo_ibge_7")
+attr(campos, "vigiar_municipio")
+attr(campos, "vigiar_macrorregiao_saude")
+```
+
 ## Coverage Diagnostics
 
 `vigiar_rj_cobertura()` returns a tibble with:
@@ -148,6 +163,21 @@ vigiar_rj_cobertura(pm25_rj, por = "mes")
 vigiar_rj_cobertura(pm25_rj, por = "ano_mes")
 vigiar_rj_cobertura(pm25_rj, por = "macrorregiao")
 vigiar_rj_cobertura(pm25_rj, por = "regiao_saude")
+```
+
+For table-aware completeness, use `vigiar_rj_completude_tabela()`. It
+applies the expected grid for common VIGIAR tables: municipality x year
+for annual tables, municipality x year x month for monthly PM2.5 tables,
+and the best available municipal time grid for daily-reference tables.
+
+``` r
+vigiar_rj_completude_tabela(pm25_rj, tabela = "df_anual")
+
+vigiar_rj_completude_tabela(
+  pm25_rj,
+  tabela = "df_anual",
+  require_complete = TRUE
+)
 ```
 
 `vigiar_diagnosticar_serie(..., escopo = "rj")` uses these coverage
@@ -186,6 +216,24 @@ vigiar_exportar_auditoria(audit, "audit-pm25-rj.json")
 
 Snapshots preserve RJ metadata, including coverage and truncation
 attributes.
+
+Schema locks can be used to detect dashboard changes before an analysis
+is reused. `vigiar_esquema_verificar_critico()` checks the locked
+critical columns used by the RJ PM2.5, municipality, coordinate, and
+population workflows.
+
+``` r
+vigiar_esquema_lock("vigiar_schema_lock.json")
+vigiar_esquema_verificar("vigiar_schema_lock.json", error = TRUE)
+vigiar_esquema_verificar_critico(error = TRUE)
+```
+
+The manual validation script `data-raw/check-rj-download-completeness.R`
+writes timestamped reports, checksums, coverage tables, and
+missing-municipality lists under
+`data-raw/rj-download-completeness-output/`. These generated files are
+intended to be archived with a release or local validation record, not
+committed as package data.
 
 ## Exploratory Plot
 
@@ -232,6 +280,9 @@ Run `vigiar_info()` for the live table catalogue after connecting.
 - Tables without municipality codes cannot prove 92/92 RJ coverage.
 - Short time series and missing months limit trend interpretation.
 - Ecological associations do not establish individual-level causality.
+- This package prepares and audits data. It does not implement or
+  validate causal inference, GAM, DLNM, relative-risk, or
+  machine-learning models.
 
 ## Citation
 

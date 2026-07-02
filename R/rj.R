@@ -266,6 +266,8 @@ vigiar_validar_rj <- function(dados, col_muni = NULL) {
 #' @param validar_cobertura If \code{TRUE}, report RJ coverage after download.
 #' @param exigir_completo If \code{TRUE}, error unless all 92 municipalities
 #'   are present.
+#' @param require_complete English alias for \code{exigir_completo}. When
+#'   \code{TRUE}, possible API truncation is also an error.
 #' @param processar If \code{TRUE}, process the table after filtering.
 #' @param tipo Optional processor type, used mainly for PM2.5 tables.
 #' @param usar_cache If \code{TRUE}, reuse a local RJ-specific cache entry.
@@ -281,6 +283,7 @@ vigiar_baixar_rj <- function(
   timeout = 120,
   validar_cobertura = TRUE,
   exigir_completo = FALSE,
+  require_complete = exigir_completo,
   processar = FALSE,
   tipo = NULL,
   usar_cache = FALSE,
@@ -291,6 +294,7 @@ vigiar_baixar_rj <- function(
     stop("No active session. Run vigiar_conectar() first.", call. = FALSE)
   }
   .vigiar_check_tabela(tabela)
+  complete_required <- isTRUE(exigir_completo) || isTRUE(require_complete)
 
   dots <- list(...)
   if (!is.null(dots$cache)) {
@@ -335,6 +339,13 @@ vigiar_baixar_rj <- function(
   dados <- do.call(vigiar_baixar, args)
   dados <- .vigiar_detectar_truncamento(dados, tabela = tabela, limite = limite)
   possivel_truncamento <- isTRUE(attr(dados, "vigiar_possivel_truncamento"))
+  if (isTRUE(possivel_truncamento) && isTRUE(complete_required)) {
+    stop(
+      "Possible API truncation was detected; complete RJ data cannot be guaranteed. ",
+      "Use a validated partitioned download before running scientific analyses.",
+      call. = FALSE
+    )
+  }
 
   dados_rj <- .vigiar_filtrar_rj(dados, validar = FALSE)
   has_municipality <- !is.na(.vigiar_coluna_municipio(dados_rj))
@@ -343,7 +354,7 @@ vigiar_baixar_rj <- function(
       "Table '%s' has no municipality code column; RJ 92-municipality completeness cannot be evaluated.",
       tabela
     )
-    if (isTRUE(validar_cobertura) || isTRUE(exigir_completo)) {
+    if (isTRUE(validar_cobertura) || isTRUE(complete_required)) {
       stop(msg, call. = FALSE)
     }
     warning(msg, call. = FALSE)
@@ -360,7 +371,7 @@ vigiar_baixar_rj <- function(
   }
 
   completo <- isTRUE(cobertura$completo[[1]])
-  if (isTRUE(exigir_completo) && !completo) {
+  if (isTRUE(complete_required) && !completo) {
     ausentes <- cobertura$municipios_ausentes[[1]]
     stop(
       sprintf(
@@ -397,6 +408,109 @@ vigiar_baixar_rj <- function(
   tibble::as_tibble(dados_rj)
 }
 
+#' Download one Rio de Janeiro municipality
+#'
+#' Downloads an RJ-scoped VIGIAR table and returns rows for a single
+#' municipality, identified only by IBGE code. This avoids fragile filters based
+#' on municipality names.
+#'
+#' @param tabela Table name.
+#' @param codigo_ibge 6- or 7-digit IBGE municipality code.
+#' @param colunas Optional character vector of column names.
+#' @param ordenar_por Optional column used to sort the Power BI query.
+#' @param limite Optional row limit passed to the Power BI query.
+#' @param timeout Timeout in seconds.
+#' @param exigir_dados If \code{TRUE}, error when the municipality has no rows.
+#' @param require_complete If \code{TRUE}, possible API truncation is an error.
+#' @param processar If \code{TRUE}, process the table after filtering.
+#' @param tipo Optional processor type.
+#' @param usar_cache If \code{TRUE}, reuse the RJ download cache.
+#' @param snapshot If \code{TRUE}, attach a \code{vigiar_snapshot} attribute.
+#' @param ... Additional arguments passed to \code{vigiar_baixar_rj()}.
+#' @return A tibble for one RJ municipality with municipality metadata.
+#' @export
+vigiar_baixar_municipio <- function(
+  tabela,
+  codigo_ibge,
+  colunas = NULL,
+  ordenar_por = NULL,
+  limite = NULL,
+  timeout = 120,
+  exigir_dados = FALSE,
+  require_complete = FALSE,
+  processar = FALSE,
+  tipo = NULL,
+  usar_cache = FALSE,
+  snapshot = FALSE,
+  ...
+) {
+  codigo6 <- .vigiar_normalizar_codigo_municipio(codigo_ibge, formato = "6")
+  if (length(codigo6) != 1L || is.na(codigo6)) {
+    stop("codigo_ibge must be one valid 6- or 7-digit IBGE municipality code.",
+         call. = FALSE)
+  }
+  if (!codigo6 %in% RJ_MUNICIPIOS$codigo_ibge_6) {
+    stop("codigo_ibge does not identify a Rio de Janeiro municipality.",
+         call. = FALSE)
+  }
+
+  dados_rj <- vigiar_baixar_rj(
+    tabela = tabela,
+    colunas = colunas,
+    ordenar_por = ordenar_por,
+    limite = limite,
+    timeout = timeout,
+    validar_cobertura = FALSE,
+    exigir_completo = FALSE,
+    require_complete = FALSE,
+    processar = processar,
+    tipo = tipo,
+    usar_cache = usar_cache,
+    snapshot = FALSE,
+    ...
+  )
+
+  if (isTRUE(require_complete) &&
+      isTRUE(attr(dados_rj, "vigiar_possivel_truncamento"))) {
+    stop(
+      "Possible API truncation was detected; complete municipality data cannot be guaranteed.",
+      call. = FALSE
+    )
+  }
+
+  out <- dados_rj[dados_rj$codigo_ibge_6 == codigo6, , drop = FALSE]
+  reg <- RJ_MUNICIPIOS[RJ_MUNICIPIOS$codigo_ibge_6 == codigo6, ]
+
+  if (nrow(out) == 0) {
+    msg <- sprintf(
+      "No rows were returned for municipality %s (%s) in table '%s'.",
+      reg$municipio[[1]], codigo6, tabela
+    )
+    if (isTRUE(exigir_dados)) {
+      stop(msg, call. = FALSE)
+    }
+    warning(msg, call. = FALSE)
+  }
+
+  attr(out, "vigiar_tabela") <- tabela
+  attr(out, "vigiar_uf") <- "RJ"
+  attr(out, "vigiar_codigo_ibge_6") <- codigo6
+  attr(out, "vigiar_codigo_ibge_7") <- reg$codigo_ibge_7[[1]]
+  attr(out, "vigiar_municipio") <- reg$municipio[[1]]
+  attr(out, "vigiar_macrorregiao_saude") <- reg$macrorregiao_saude[[1]]
+  attr(out, "vigiar_regiao_saude") <- reg$regiao_saude[[1]]
+  attr(out, "vigiar_municipio_presente") <- nrow(out) > 0
+  attr(out, "vigiar_municipio_linhas") <- nrow(out)
+  attr(out, "vigiar_possivel_truncamento") <- isTRUE(attr(dados_rj, "vigiar_possivel_truncamento"))
+  attr(out, "vigiar_download_timestamp") <- Sys.time()
+
+  if (isTRUE(snapshot)) {
+    attr(out, "vigiar_snapshot") <- vigiar_snapshot(dados = out, tabela = tabela)
+  }
+
+  tibble::as_tibble(out)
+}
+
 #' Download Rio de Janeiro VIGIAR data using smaller partitions
 #'
 #' This is a preparatory interface for partitioned RJ downloads. The current
@@ -414,6 +528,7 @@ vigiar_baixar_rj <- function(
 #' @param validar_cobertura If \code{TRUE}, validate final RJ coverage.
 #' @param exigir_completo If \code{TRUE}, error unless all expected RJ
 #'   municipalities are present in the final result.
+#' @param require_complete English alias for \code{exigir_completo}.
 #' @param ... Additional arguments passed to \code{vigiar_baixar_rj()}.
 #' @return A tibble from \code{vigiar_baixar_rj()} when \code{por = "auto"}.
 #' @export
@@ -427,6 +542,7 @@ vigiar_baixar_rj_completo <- function(
   delay = 0.5,
   validar_cobertura = TRUE,
   exigir_completo = FALSE,
+  require_complete = exigir_completo,
   ...
 ) {
   por <- match.arg(por)
@@ -445,6 +561,7 @@ vigiar_baixar_rj_completo <- function(
     timeout = timeout,
     validar_cobertura = validar_cobertura,
     exigir_completo = exigir_completo,
+    require_complete = require_complete,
     ...
   )
 
@@ -525,6 +642,50 @@ vigiar_rj_cobertura <- function(
   out$codigos_ausentes <- I(lapply(rows, `[[`, "codigos_ausentes"))
   out$macrorregioes_incompletas <- I(lapply(rows, `[[`, "macrorregioes_incompletas"))
   tibble::as_tibble(out)
+}
+
+#' Check RJ completeness using the table's expected panel grain
+#'
+#' This function distinguishes "data were downloaded" from "the expected RJ
+#' panel is complete". For `df_mensal`, completeness is assessed by
+#' municipality x year x month. For `df_anual` and `df_dias`, completeness is
+#' assessed by municipality x year when a year column exists.
+#'
+#' @param dados A data frame with municipality codes.
+#' @param tabela Optional table name. Defaults to the `vigiar_tabela` attribute.
+#' @param require_complete If \code{TRUE}, incomplete coverage or possible
+#'   truncation is an error.
+#' @return A tibble with RJ coverage metrics at the expected table grain.
+#' @export
+vigiar_rj_completude_tabela <- function(dados, tabela = NULL, require_complete = FALSE) {
+  tabela <- tabela %||% attr(dados, "vigiar_tabela") %||% "dados"
+  dados <- tibble::as_tibble(dados)
+  por <- .vigiar_cobertura_por_tabela(tabela, dados)
+
+  cobertura <- vigiar_rj_cobertura(dados, por = por)
+  cobertura$tabela <- tabela
+  cobertura$grade <- .vigiar_grade_cobertura_label(tabela, por)
+  cobertura <- cobertura[
+    c("tabela", "grade", setdiff(names(cobertura), c("tabela", "grade")))
+  ]
+
+  incomplete <- any(!cobertura$completo)
+  truncated <- any(cobertura$possivel_truncamento)
+  if (isTRUE(require_complete) && (incomplete || truncated)) {
+    if (truncated) {
+      stop(
+        "Possible API truncation was detected; complete RJ table coverage cannot be guaranteed.",
+        call. = FALSE
+      )
+    }
+    stop(
+      sprintf("RJ table coverage is incomplete for '%s' at grain '%s'.",
+              tabela, unique(cobertura$grade)[[1]]),
+      call. = FALSE
+    )
+  }
+
+  cobertura
 }
 
 #' List absent Rio de Janeiro municipalities
@@ -651,6 +812,44 @@ vigiar_plot_pm25_rj <- function(dados, por = c("ano", "macrorregiao", "municipio
 .vigiar_coluna_pm25 <- function(dados) {
   intersect(c("pm25_media_anual", "pm25_media", "pm25",
               "Media_pm25", "pm25_media_periodo"), names(dados))[1]
+}
+
+.vigiar_cobertura_por_tabela <- function(tabela, dados) {
+  tabela <- tabela %||% ""
+  if (identical(tabela, "df_mensal")) {
+    if (!all(c("ano", "mes") %in% names(dados))) {
+      stop("Table 'df_mensal' requires 'ano' and 'mes' columns for RJ completeness.",
+           call. = FALSE)
+    }
+    return("ano_mes")
+  }
+
+  if (tabela %in% c("df_anual", "df_dias", "df_dias_conama")) {
+    if ("ano" %in% names(dados)) {
+      return("ano")
+    }
+    return("geral")
+  }
+
+  if (all(c("ano", "mes") %in% names(dados))) {
+    return("ano_mes")
+  }
+  if ("ano" %in% names(dados)) {
+    return("ano")
+  }
+  "geral"
+}
+
+.vigiar_grade_cobertura_label <- function(tabela, por) {
+  switch(por,
+    ano_mes = "municipio x ano x mes",
+    ano = "municipio x ano",
+    mes = "municipio x mes",
+    geral = "municipio",
+    macrorregiao = "macrorregiao",
+    regiao_saude = "regiao_saude",
+    por
+  )
 }
 
 .vigiar_normalizar_codigo_municipio <- function(x, formato = c("auto", "6", "7")) {

@@ -107,16 +107,19 @@ vigiar_diagnosticar_serie <- function(dados,
   # ---- 4. PM2.5 value validation ----
   diag <- vigiar_checar_pm25(diag, dados, col_pm25)
 
-  # ---- 5. Duplicate detection ----
+  # ---- 5. Missing PM2.5 blocks ----
+  diag <- vigiar_checar_blocos_pm25_ausentes(diag, dados, col_muni, col_ano, col_mes, col_pm25)
+
+  # ---- 6. Duplicate detection ----
   diag <- vigiar_checar_duplicatas(diag, dados, col_muni, col_ano, col_mes)
 
-  # ---- 6. Series break detection ----
+  # ---- 7. Series break detection ----
   diag <- vigiar_checar_quebra_serie(diag, dados, col_muni, col_ano, col_pm25)
 
-  # ---- 7. Classify alerts ----
+  # ---- 8. Classify alerts ----
   diag <- vigiar_classificar_alertas(diag)
 
-  # ---- 8. Generate recommendations ----
+  # ---- 9. Generate recommendations ----
   diag <- .vigiar_gerar_recomendacoes(diag)
 
   class(diag) <- "vigiar_diagnostic"
@@ -470,6 +473,19 @@ vigiar_checar_pm25 <- function(diag, dados, col_pm25) {
       sprintf("%d valores > 1000 ug/m3 (improvavel). Verifique unidades.", altos))
   }
 
+  zeros <- sum(vals == 0, na.rm = TRUE)
+  pct_zero <- round(100 * zeros / n_total, 1)
+  if (zeros > 0) {
+    if (pct_zero >= 30) {
+      diag <- .vigiar_add_issue(diag, "problema",
+        sprintf("PM2.5: %.1f%% dos valores sao zero. Verifique zeros estruturais ou falhas de preenchimento.",
+                pct_zero))
+    } else {
+      diag <- .vigiar_add_issue(diag, "aviso",
+        sprintf("PM2.5: %d valor(es) zero detectado(s); confirme se representam dado real.", zeros))
+    }
+  }
+
   # Extreme outliers (IQR method)
   q1 <- stats::quantile(vals, 0.25, na.rm = TRUE)
   q3 <- stats::quantile(vals, 0.75, na.rm = TRUE)
@@ -497,12 +513,82 @@ vigiar_checar_pm25 <- function(diag, dados, col_pm25) {
   diag$metricas$pm25_min <- min(vals, na.rm = TRUE)
   diag$metricas$pm25_max <- max(vals, na.rm = TRUE)
   diag$metricas$pm25_pct_ausente <- pct_na
+  diag$metricas$pm25_pct_zero <- pct_zero
 
-  if (negativos == 0 && altos == 0 && extremos == 0) {
+  if (negativos == 0 && altos == 0 && extremos == 0 && zeros == 0) {
     .vigiar_add_issue(diag, "ok",
       sprintf("PM2.5: media=%.1f, mediana=%.1f, dp=%.1f ug/m3.",
               diag$metricas$pm25_media, diag$metricas$pm25_mediana,
               diag$metricas$pm25_dp))
+  }
+
+  diag
+}
+
+#' Check long blocks of missing PM2.5 values
+#'
+#' @param diag A vigiar_diagnostic object.
+#' @param dados Data frame.
+#' @param col_muni Municipality code column.
+#' @param col_ano Year column.
+#' @param col_mes Month column.
+#' @param col_pm25 PM2.5 column.
+#' @return The modified diagnostic object.
+#' @export
+vigiar_checar_blocos_pm25_ausentes <- function(diag, dados, col_muni,
+                                                col_ano = "ano", col_mes = "mes",
+                                                col_pm25) {
+  required <- c(col_muni, col_ano, col_pm25)
+  if (!all(required %in% names(dados))) {
+    return(diag)
+  }
+  if (nrow(dados) == 0) {
+    diag$metricas$pm25_maior_bloco_ausente <- 0L
+    diag$metricas$pm25_municipios_blocos_ausentes <- character(0)
+    return(diag)
+  }
+
+  has_month <- col_mes %in% names(dados)
+  tmp <- data.frame(
+    municipio = .vigiar_normalizar_codigo_municipio(dados[[col_muni]]),
+    ano = as.integer(dados[[col_ano]]),
+    mes = if (has_month) as.integer(dados[[col_mes]]) else rep(NA_integer_, nrow(dados)),
+    ausente = is.na(as.numeric(dados[[col_pm25]]))
+  )
+  tmp <- tmp[!is.na(tmp$municipio) & !is.na(tmp$ano), , drop = FALSE]
+  if (nrow(tmp) == 0) {
+    return(diag)
+  }
+
+  tmp <- tmp[order(tmp$municipio, tmp$ano, tmp$mes), , drop = FALSE]
+  threshold <- if (has_month) 6L else 3L
+  unit_label <- if (has_month) "monthly records" else "annual records"
+  max_block <- 0L
+  affected <- character(0)
+
+  for (m in unique(tmp$municipio)) {
+    block <- tmp[tmp$municipio == m, , drop = FALSE]
+    r <- rle(block$ausente)
+    if (!any(r$values)) {
+      next
+    }
+    muni_max <- max(r$lengths[r$values])
+    max_block <- max(max_block, muni_max)
+    if (muni_max >= threshold) {
+      affected <- c(affected, as.character(m))
+    }
+  }
+
+  diag$metricas$pm25_maior_bloco_ausente <- max_block
+  diag$metricas$pm25_municipios_blocos_ausentes <- unique(affected)
+
+  if (length(affected) > 0) {
+    severity <- if (max_block >= threshold * 2L) "problema" else "aviso"
+    diag <- .vigiar_add_issue(diag, severity,
+      sprintf(
+        "PM2.5 has long missing blocks: max %d consecutive %s in %d municipality(ies).",
+        max_block, unit_label, length(unique(affected))
+      ))
   }
 
   diag

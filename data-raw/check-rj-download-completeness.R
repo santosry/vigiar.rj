@@ -2,7 +2,8 @@
 #
 # This script intentionally requires internet access and is not run by CI.
 # Outputs are written under data-raw/rj-download-completeness-output/, which is
-# ignored by Git.
+# ignored by Git. Set VIGIAR_VALIDATION_RELEASE to the release tag when the
+# report should be archived with a formal package release.
 
 if (file.exists("DESCRIPTION") && requireNamespace("pkgload", quietly = TRUE)) {
   pkgload::load_all(".")
@@ -10,8 +11,14 @@ if (file.exists("DESCRIPTION") && requireNamespace("pkgload", quietly = TRUE)) {
   library(vigiar)
 }
 
-out_dir <- file.path("data-raw", "rj-download-completeness-output")
+release_id <- Sys.getenv(
+  "VIGIAR_VALIDATION_RELEASE",
+  unset = paste0("vigiar-", utils::packageVersion("vigiar"))
+)
+run_id <- paste(release_id, format(Sys.time(), "%Y%m%d-%H%M%S"), sep = "-")
+out_dir <- file.path("data-raw", "rj-download-completeness-output", run_id)
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+manifest <- list()
 
 write_report <- function(x, name) {
   path <- file.path(out_dir, name)
@@ -32,6 +39,24 @@ print_absent <- function(dados, label, por = "geral") {
     print(missing)
   }
   invisible(missing)
+}
+
+manifest_row <- function(tab, dados, cobertura) {
+  data.frame(
+    run_id = run_id,
+    release = release_id,
+    checked_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
+    tabela = tab,
+    n_rows = nrow(dados),
+    n_cols = ncol(dados),
+    checksum = vigiar_checksum(dados),
+    n_municipios_presentes = cobertura$n_municipios_presentes[[1]],
+    n_municipios_esperados = cobertura$n_municipios_esperados[[1]],
+    cobertura_pct = cobertura$cobertura_pct[[1]],
+    n_ausentes = cobertura$n_ausentes[[1]],
+    possivel_truncamento = isTRUE(attr(dados, "vigiar_possivel_truncamento")),
+    stringsAsFactors = FALSE
+  )
 }
 
 vigiar_conectar()
@@ -56,6 +81,7 @@ for (tab in tables) {
 
   cov_general <- vigiar_rj_cobertura(dados)
   write_report(cov_general, paste0(tab, "-coverage-general.csv"))
+  manifest[[tab]] <- manifest_row(tab, dados, cov_general)
   print_absent(dados, tab)
 
   if ("ano" %in% names(dados)) {
@@ -71,3 +97,9 @@ for (tab in tables) {
 
   saveRDS(dados, file.path(out_dir, paste0(tab, "-rj.rds")))
 }
+
+if (length(manifest) > 0) {
+  write_report(do.call(rbind, manifest), "manifest.csv")
+}
+
+message("\nValidation run archived under: ", normalizePath(out_dir, winslash = "/", mustWork = FALSE))

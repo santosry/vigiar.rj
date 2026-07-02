@@ -1,0 +1,49 @@
+{
+  "locked_at": "2026-07-02",
+  "source": "Critical VIGIAR columns required by RJ PM2.5, municipality, and population workflows.",
+  "tabelas": [
+    "df_anual",
+    "df_mensal",
+    "df_dias",
+    "pop",
+    "df_muni"
+  ],
+  "esquema": {
+    "df_anual": {
+      "muni": {"tipo": "integer"},
+      "UF": {"tipo": "character"},
+      "ano": {"tipo": "integer"},
+      "Media_pm25": {"tipo": "numeric"}
+    },
+    "df_mensal": {
+      "muni": {"tipo": "integer"},
+      "UF": {"tipo": "character"},
+      "ano": {"tipo": "integer"},
+      "mes": {"tipo": "integer"},
+      "pm25": {"tipo": "numeric"},
+      "LAT": {"tipo": "numeric"},
+      "LON": {"tipo": "numeric"}
+    },
+    "df_dias": {
+      "ID_MUNI": {"tipo": "integer"},
+      "ano": {"tipo": "integer"},
+      "mes": {"tipo": "integer"},
+      "t_dias": {"tipo": "numeric"},
+      "n_dias": {"tipo": "integer"}
+    },
+    "pop": {
+      "muni": {"tipo": "integer"},
+      "ano": {"tipo": "integer"},
+      "pop": {"tipo": "numeric"},
+      "categoria": {"tipo": "character"},
+      "UF": {"tipo": "character"}
+    },
+    "df_muni": {
+      "MUN_COD": {"tipo": "integer"},
+      "MUN_NOME": {"tipo": "character"},
+      "UF_SIGLA": {"tipo": "character"},
+      "LAT": {"tipo": "numeric"},
+      "LON": {"tipo": "numeric"}
+    }
+  }
+}
